@@ -13,6 +13,7 @@ from ._version import __version__
 
 _PUBLIC_SUBMODULES = {
     "channels",
+    "fiber",
     "measurements",
     "metrics",
     "operators",
