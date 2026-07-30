@@ -1,0 +1,29 @@
+name: Feature request
+description: Propose a new scientific or engineering capability
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Scientific or engineering need
+      description: What problem would this feature solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed interface or workflow
+    validations:
+      required: true
+  - type: dropdown
+    id: ownership
+    attributes:
+      label: Likely package
+      options:
+        - iqcore
+        - iq4comm
+        - Future iQuant4 branch
+        - Not sure
+    validations:
+      required: true

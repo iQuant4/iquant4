@@ -1,0 +1,77 @@
+name: iQuant4 CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-package:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.10"
+          - os: ubuntu-latest
+            python: "3.12"
+          - os: ubuntu-latest
+            python: "3.14"
+          - os: windows-latest
+            python: "3.12"
+          - os: windows-latest
+            python: "3.14"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install package and release dependencies
+        run: >-
+          python -m pip install --upgrade pip &&
+          python -m pip install -e ".[dev,tomography,release]"
+
+      - name: Verify repository hygiene
+        run: python tools/verify_repository_hygiene.py --root . --require-git
+
+      - name: Run scientific and architecture tests
+        run: python -m pytest -q
+
+      - name: Regenerate scientific validation report
+        run: python tools/generate_validation_report.py
+
+      - name: Run release-gate diagnostics
+        run: python tools/verify_release_gate.py
+
+      - name: Run runtime diagnostics
+        run: python -m iq4comm doctor
+
+      - name: Verify static public preview
+        run: python tools/verify_public_preview.py
+
+      - name: Build wheel and source distribution
+        run: python -m build --wheel --sdist --outdir dist/ci
+
+      - name: Check package metadata and README rendering
+        run: python -m twine check dist/ci/*
+
+      - name: Verify release artifacts and isolated installation
+        run: python tools/verify_release_candidate.py dist/ci
+
+      - name: Upload reference artifacts
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.14'
+        uses: actions/upload-artifact@v4
+        with:
+          name: iq4comm-developer-alpha-artifacts
+          path: dist/ci/*

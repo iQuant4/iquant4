@@ -1,0 +1,29 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+include CONTRIBUTING.md
+include SECURITY.md
+include CITATION.cff
+recursive-include .github *.yml *.yaml *.md
+include CODE_OF_CONDUCT.md
+include GOVERNANCE.md
+include ROADMAP.md
+include .gitattributes
+include .gitignore
+recursive-include docs *.md
+recursive-include branches *.md
+recursive-include examples *.py
+recursive-include tools *.py
+recursive-include tests *.py
+prune archive
+prune logs
+prune .venv
+prune .venv-relocated-backup
+prune build
+prune dist
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude .DS_Store
+global-exclude Thumbs.db
+exclude requirements-lock.txt
+exclude quadrature_measurement_numbered.txt

@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible software or numerical problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Thank you for helping improve the iQuant4 developer alpha."
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem summary
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Minimal reproducer
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: `iq4comm doctor --json` output
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional scientific or system context

@@ -1,0 +1,85 @@
+# Virtual environments
+.venv/
+.venv-*/
+venv/
+env/
+
+# Python caches and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# Packaging and generated release outputs
+build/
+dist/
+*.egg-info/
+*.whl
+*.tar.gz
+
+# Local environments and dependency snapshots
+requirements-lock.txt
+.python-version
+
+# Local migration material, logs, patch bundles, and backups
+archive/
+archive/migrations/
+logs/
+*.log
+/ALPHA_*/
+/ARCHITECTURE_*/
+/COMM_*/
+/CORE_*/
+*_patch/
+*_HOTFIX/
+iQuant4_*_patch.zip
+iQuant4_source_*.zip
+
+# Legacy local project resource folders
+/Data/
+/Figures/
+/Notebooks/
+/data/
+/figures/
+/notebooks/
+
+# Generated showcase, documentation, and public-preview sites
+/showcase_output/
+/documentation_output/
+/public_preview/
+/site/
+
+# Secrets, credentials, local environment files, and private keys
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+token*.json
+
+# Local databases and temporary files
+*.sqlite
+*.sqlite3
+*.tmp
+*.bak
+*~
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local archive and patch bundles
+*.zip
