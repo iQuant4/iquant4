@@ -9,9 +9,11 @@ classical optical-communications branch and the quantum-communications branch:
   effective length, and the power ``transmissivity`` a quantum loss channel
   consumes.
 * :func:`propagate` solves the nonlinear Schrodinger equation with a symmetric
-  split-step Fourier method, capturing attenuation, chromatic dispersion, and
-  the Kerr nonlinearity together -- the effects that make long- and short-haul
-  link modelling realistic.
+  split-step Fourier method (attenuation, chromatic dispersion, Kerr
+  nonlinearity).
+* :class:`Amplifier` models EDFA-style gain and ASE noise, and :class:`Link`
+  chains spans and amplifiers into a full multi-span system with OSNR and
+  end-to-end transmissivity.
 
 Example
 -------
@@ -41,6 +43,8 @@ from .propagation import (
     propagate,
     PropagationResult,
 )
+from .amplifier import Amplifier
+from .link import FiberSpan, Link
 
 __all__ = [
     "FiberSpec",
@@ -54,4 +58,7 @@ __all__ = [
     "soliton_pulse",
     "propagate",
     "PropagationResult",
+    "Amplifier",
+    "FiberSpan",
+    "Link",
 ]
