@@ -14,6 +14,12 @@ from .dv import (
     bb84_decoy_key_rate,
     bb84_rate_vs_distance,
 )
+from .cv import (
+    holevo_g,
+    CVDetector,
+    cvqkd_homodyne_key_rate,
+    cvqkd_rate_vs_distance,
+)
 from .coexistence import (
     RamanModel,
     raman_background_yield,
@@ -29,6 +35,10 @@ __all__ = [
     "DetectorModel",
     "bb84_decoy_key_rate",
     "bb84_rate_vs_distance",
+    "holevo_g",
+    "CVDetector",
+    "cvqkd_homodyne_key_rate",
+    "cvqkd_rate_vs_distance",
     "RamanModel",
     "raman_background_yield",
     "coexistence_dv_key_rate",
