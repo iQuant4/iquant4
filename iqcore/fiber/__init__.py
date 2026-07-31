@@ -45,6 +45,18 @@ from .propagation import (
 )
 from .amplifier import Amplifier
 from .link import FiberSpan, Link
+from .wdm import (
+    WDMChannel,
+    DWDMGrid,
+    CWDMGrid,
+    WDMComb,
+    dwdm_frequency_hz,
+    dwdm_wavelength_nm,
+    frequency_to_wavelength_nm,
+    wavelength_nm_to_frequency_hz,
+    CWDM_WAVELENGTHS_NM,
+    C_BAND_NM,
+)
 
 __all__ = [
     "FiberSpec",
@@ -61,4 +73,14 @@ __all__ = [
     "Amplifier",
     "FiberSpan",
     "Link",
+    "WDMChannel",
+    "DWDMGrid",
+    "CWDMGrid",
+    "WDMComb",
+    "dwdm_frequency_hz",
+    "dwdm_wavelength_nm",
+    "frequency_to_wavelength_nm",
+    "wavelength_nm_to_frequency_hz",
+    "CWDM_WAVELENGTHS_NM",
+    "C_BAND_NM",
 ]
