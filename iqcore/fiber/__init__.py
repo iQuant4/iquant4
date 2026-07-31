@@ -45,6 +45,7 @@ from .propagation import (
 )
 from .amplifier import Amplifier
 from .link import FiberSpan, Link
+from .nonlinear import backpropagate, compensate_dispersion, nmse
 from .wdm import (
     WDMChannel,
     DWDMGrid,
@@ -73,6 +74,9 @@ __all__ = [
     "Amplifier",
     "FiberSpan",
     "Link",
+    "backpropagate",
+    "compensate_dispersion",
+    "nmse",
     "WDMChannel",
     "DWDMGrid",
     "CWDMGrid",
