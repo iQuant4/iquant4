@@ -52,10 +52,31 @@ __all__ = [
 _PLANCK_J_S = 6.62607015e-34
 _C_M_PER_S = 2.99792458e8
 
+# --- Measured spontaneous-Raman slopes for standard single-mode fiber --------
+# Patel et al., "Impact of Raman Scattered Noise from Multiple Telecom Channels
+# on Fiber-Optic QKD Systems," J. Lightwave Technol. 32(13), 2332 (2014);
+# arXiv:1410.0656, Table II.  Slopes are the Raman count-probability per gate
+# per km of fiber per 100 GHz of quantum-classical spectral separation, measured
+# at a 10 GHz detection bandwidth and 2.5 ns gate (co-propagating / forward).
+# Anti-Stokes (quantum below the classical pump) is ~1.6x noisier than Stokes.
+MEASURED_RAMAN_SLOPE_STOKES_FWD = 6.9e-12       # per km per 100 GHz, ref 10 GHz / 2.5 ns
+MEASURED_RAMAN_SLOPE_ANTISTOKES_FWD = 11.5e-12
+MEASURED_RAMAN_REF_BANDWIDTH_GHZ = 10.0
+MEASURED_RAMAN_REF_GATE_NS = 2.5
+
 
 @dataclass(frozen=True)
 class RamanModel:
     """Spontaneous-Raman coexistence-noise parameters.
+
+    The default coefficient is a **representative, conservative** effective value;
+    for quantitative results calibrate it to your detector's optical bandwidth,
+    gate width, and the quantum-classical spectral offset, using the measured
+    slopes ``MEASURED_RAMAN_SLOPE_*`` (Patel et al., JLT 2014 / arXiv:1410.0656,
+    Table II).  Comparison with those measured slopes indicates this default
+    over-estimates the Raman floor -- i.e. real coexistence is typically *more*
+    favourable than the default curves show -- so treat it as an upper bound
+    until calibrated to specific hardware.
 
     Attributes
     ----------
