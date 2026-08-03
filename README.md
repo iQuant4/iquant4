@@ -3,15 +3,47 @@
 **iQuant4** is an emerging quantum-engineering workspace. The first developer
 alpha contains two active Python packages:
 
-- **`iqcore`** — reusable quantum states, operators, measurements, optical
-  transformations, phase-space tools, metrics, and tomography.
-- **`iq4comm`** — coherent optical sources, fiber channels, receiver models,
-  receiver metrics, and threshold optimization for optical and quantum
-  communications.
+- **`iqcore`** — the shared scientific engine: quantum states, operators,
+  measurements, optical transformations, phase-space tools, metrics, tomography,
+  and a physical **fiber layer** (`iqcore.fiber`) with split-step-Fourier NLSE
+  propagation, standard fibers (SMF-28/DSF/LEAF/DCF), EDFA amplifiers,
+  multi-span links, WDM grids (DWDM G.694.1 / CWDM G.694.2), and digital
+  backpropagation.
+- **`iq4comm`** — the communications branch: coherent sources, fiber channels,
+  receivers and metrics, **digital modulation and DSP** (`iq4comm.dsp`:
+  OOK/BPSK/QPSK/16-/64-QAM, coherent BER, and the Gaussian-Noise nonlinear
+  model), a **learned-equalizer** layer (`iq4comm.ml`), and a
+  **quantum-key-distribution** layer (`iq4comm.qkd`: DV decoy-state BB84, CV
+  GG02 homodyne, and classical–quantum DWDM coexistence).
 
 The future iQuant4 roadmap includes **iQuant4Compute**, **iQuant4Sense**, and
 **iQuant4Photonics**. They will build on `iqcore`; they are documented under
 [`branches/`](branches/) but are not active Python packages in this alpha.
+
+## Unified classical–quantum modelling
+
+Every layer is driven by **one physical fiber description**
+(`iqcore.fiber.FiberSpec`): the same object that propagates a classical optical
+field, computes a multi-span link OSNR, and sets the Gaussian-Noise nonlinear
+reach also parametrises the QKD secret-key rate — and their **coexistence** on a
+shared DWDM fiber. This is the platform's distinguishing capability: it computes
+classical capacity *and* DV/CV-QKD key rate *and* the spontaneous-Raman
+coexistence coupling between them from a single fiber model, and returns the
+classical-throughput-versus-secret-key-rate operating point (`iq4comm.qkd.
+coexistence`).
+
+Run the end-to-end capstone (fiber → link → BER → digital backpropagation →
+DV/CV QKD → coexistence):
+
+```powershell
+.\.venv\Scripts\python.exe -m examples.iquant4_showcase
+```
+
+Every model is validated against analytical or literature references in the
+test suite: NLSE self-phase-modulation and soliton preservation, the textbook
+N-span OSNR law, closed-form and Monte-Carlo BER agreement, the GN optimal-launch
+condition, the PLOB repeaterless key-rate bound, and the shared Raman-occupation
+link between the DV and CV coexistence penalties.
 
 ## Status
 
