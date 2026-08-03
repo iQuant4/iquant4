@@ -10,6 +10,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+# The learned equalizers require scikit-learn (the optional `ml` extra).
+pytest.importorskip("sklearn")
+
 from iq4comm.ml import (
     make_dataset,
     LinearEqualizer,
