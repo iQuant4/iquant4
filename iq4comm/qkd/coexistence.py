@@ -35,11 +35,15 @@ import numpy as np
 from iqcore.fiber import Amplifier, FiberSpec, SMF28
 from iq4comm.dsp.gn_model import nli_coefficient, ase_power_w, effective_snr
 from .dv import DetectorModel, bb84_decoy_key_rate
+from .cv import CVDetector, cvqkd_homodyne_key_rate
 
 __all__ = [
     "RamanModel",
     "raman_background_yield",
+    "raman_photon_occupation",
+    "cv_raman_excess_noise",
     "coexistence_dv_key_rate",
+    "coexistence_cv_key_rate",
     "classical_capacity_bps",
     "coexistence_curve",
     "CoexistencePoint",
@@ -85,6 +89,55 @@ def raman_background_yield(classical_total_power_w: float, distance_km: float, *
     photon_energy = _PLANCK_J_S * nu
     photons_per_gate = p_raman / photon_energy * raman.gate_time_s
     return photons_per_gate * detector_efficiency
+
+
+def raman_photon_occupation(classical_total_power_w: float, distance_km: float, *,
+                            fiber: FiberSpec = SMF28,
+                            raman: RamanModel | None = None) -> float:
+    """Mean Raman noise-photon occupation per optical mode ``n_bar``.
+
+    Filter-independent single-mode occupation; the DV background integrates many
+    such modes (``n_bar * B_filter * t_gate``) while a CV homodyne receiver sees
+    exactly one mode.  This is the shared quantity that links the two protocols'
+    coexistence penalties.
+    """
+    raman = raman or RamanModel()
+    l_eff = fiber.effective_length_km(distance_km)
+    p_raman = (classical_total_power_w * raman.raman_coeff_per_km_per_nm
+               * raman.filter_bandwidth_nm * l_eff)
+    lam_m = raman.quantum_wavelength_nm * 1e-9
+    photon_energy = _PLANCK_J_S * (_C_M_PER_S / lam_m)
+    filter_bandwidth_hz = (_C_M_PER_S / lam_m ** 2) * (raman.filter_bandwidth_nm * 1e-9)
+    return p_raman / (photon_energy * filter_bandwidth_hz)
+
+
+def cv_raman_excess_noise(classical_total_power_w: float, distance_km: float, *,
+                          fiber: FiberSpec = SMF28,
+                          raman: RamanModel | None = None) -> float:
+    """CV-QKD excess noise (SNU) from co-propagating classical power.
+
+    A thermal Raman background of occupation ``n_bar`` adds ``2 * n_bar`` to the
+    quadrature variance (both quadratures) referred to the receiver.
+    """
+    n_bar = raman_photon_occupation(classical_total_power_w, distance_km,
+                                    fiber=fiber, raman=raman)
+    return 2.0 * n_bar
+
+
+def coexistence_cv_key_rate(distance_km: float, launch_power_dbm_per_channel: float,
+                            n_channels: int, *, fiber: FiberSpec = SMF28,
+                            cv_detector: CVDetector | None = None,
+                            raman: RamanModel | None = None,
+                            modulation_variance: float = 4.0,
+                            intrinsic_excess_noise: float = 0.01) -> float:
+    """CV-QKD (GG02 homodyne) key rate with classical DWDM channels present."""
+    p_ch_w = 1e-3 * 10.0 ** (launch_power_dbm_per_channel / 10.0)
+    p_total = p_ch_w * n_channels
+    xi_raman = cv_raman_excess_noise(p_total, distance_km, fiber=fiber, raman=raman)
+    t = fiber.transmissivity(distance_km)
+    return cvqkd_homodyne_key_rate(
+        t, modulation_variance=modulation_variance,
+        excess_noise=intrinsic_excess_noise + xi_raman, detector=cv_detector)
 
 
 def coexistence_dv_key_rate(distance_km: float, launch_power_dbm_per_channel: float,
