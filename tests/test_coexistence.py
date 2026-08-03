@@ -31,17 +31,17 @@ def test_zero_classical_power_recovers_isolated_qkd():
 
 
 def test_more_classical_power_lowers_key_rate():
-    d = 50.0
-    rates = [coexistence_dv_key_rate(d, p, 20) for p in (-10, -5, 0, 5)]
+    d = 50.0  # points inside the calibrated secure window (boundary ~ -11 dBm)
+    rates = [coexistence_dv_key_rate(d, p, 20) for p in (-20, -16, -13)]
     # Non-increasing as classical power rises.
     assert all(rates[i] >= rates[i + 1] for i in range(len(rates) - 1))
     # High enough classical power extinguishes the key.
-    assert coexistence_dv_key_rate(d, 12.0, 40) == 0.0
+    assert coexistence_dv_key_rate(d, 0.0, 20) == 0.0
 
 
 def test_more_channels_lowers_key_rate():
-    d = 50.0  # compare where a key still exists (low classical power)
-    assert coexistence_dv_key_rate(d, -10.0, 40) < coexistence_dv_key_rate(d, -10.0, 10)
+    d = 50.0  # -16 dBm: both channel counts still secure, more channels -> lower
+    assert coexistence_dv_key_rate(d, -16.0, 40) < coexistence_dv_key_rate(d, -16.0, 10)
 
 
 def test_classical_capacity_positive_with_interior_gn_optimum():

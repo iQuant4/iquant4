@@ -43,8 +43,8 @@ def test_zero_power_recovers_isolated_cv():
 
 
 def test_more_classical_power_lowers_cv_rate():
-    d = 50.0
-    rates = [coexistence_cv_key_rate(d, p, 20) for p in (-12, -8, -6)]
+    d = 50.0  # inside the calibrated secure window
+    rates = [coexistence_cv_key_rate(d, p, 20) for p in (-20, -16, -13)]
     assert all(rates[i] >= rates[i + 1] for i in range(len(rates) - 1))
     assert coexistence_cv_key_rate(d, 5.0, 40) == 0.0
 
@@ -53,7 +53,7 @@ def test_cv_delivers_higher_rate_than_dv_when_both_secure():
     """Where both protocols close a key, CV yields the higher rate here."""
     from iq4comm.qkd import coexistence_dv_key_rate
     d = 50.0
-    for p in (-15, -10, -8):
+    for p in (-18, -16, -14):
         cv = coexistence_cv_key_rate(d, p, 20)
         dv = coexistence_dv_key_rate(d, p, 20)
         assert cv > 0 and dv > 0 and cv > dv

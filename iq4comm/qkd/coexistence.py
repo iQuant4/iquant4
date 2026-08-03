@@ -69,20 +69,25 @@ MEASURED_RAMAN_REF_GATE_NS = 2.5
 class RamanModel:
     """Spontaneous-Raman coexistence-noise parameters.
 
-    The default coefficient is a **representative, conservative** effective value;
-    for quantitative results calibrate it to your detector's optical bandwidth,
-    gate width, and the quantum-classical spectral offset, using the measured
-    slopes ``MEASURED_RAMAN_SLOPE_*`` (Patel et al., JLT 2014 / arXiv:1410.0656,
-    Table II).  Comparison with those measured slopes indicates this default
-    over-estimates the Raman floor -- i.e. real coexistence is typically *more*
-    favourable than the default curves show -- so treat it as an upper bound
-    until calibrated to specific hardware.
+    The default coefficient is **calibrated to measured data**: it reproduces the
+    Configuration-G operating point of Patel et al. (JLT 2014 / arXiv:1410.0656)
+    -- 14 classical channels at -10.5 dBm/channel over 60 km with a 10 GHz filter
+    and 2.5 ns gate at 15% detector efficiency, giving ~0.15 Raman counts per gate
+    (co-propagating).  Solving the count-probability model at those conditions
+    yields ``rho ~ 2.5e-8 /(km*nm)`` (about 5x higher than an earlier
+    representative guess of 5e-9 -- i.e. the Raman floor is *stronger*, and
+    coexistence *less* forgiving, than an uncalibrated estimate suggests).
+
+    The anchor value (~0.15 counts/gate) comes from a reported figure and carries
+    a factor-of-a-few uncertainty; the offset dependence is folded into the
+    effective coefficient.  Recalibrate ``raman_coeff_per_km_per_nm`` to your own
+    measured background or hardware for publication-grade numbers.  See
+    ``MEASURED_RAMAN_SLOPE_*`` for the underlying measured slopes.
 
     Attributes
     ----------
     raman_coeff_per_km_per_nm:
-        Effective in-band Raman scattering coefficient ``rho`` (1/(km*nm)),
-        incorporating the receiver's spectral/temporal filtering suppression.
+        Effective in-band Raman scattering coefficient ``rho`` (1/(km*nm)).
     filter_bandwidth_nm:
         Quantum-channel optical filter bandwidth (nm).
     gate_time_s:
@@ -91,7 +96,8 @@ class RamanModel:
         Quantum-channel wavelength (sets the photon energy).
     """
 
-    raman_coeff_per_km_per_nm: float = 5e-9
+    # Calibrated to Patel et al. JLT 2014 Config G (~0.15 counts/gate); see above.
+    raman_coeff_per_km_per_nm: float = 2.5e-8
     filter_bandwidth_nm: float = 0.01
     gate_time_s: float = 1e-10
     quantum_wavelength_nm: float = 1550.0
