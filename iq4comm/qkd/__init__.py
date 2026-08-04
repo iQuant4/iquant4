@@ -47,6 +47,14 @@ from .protocols import (
     tf_qkd_key_rate,
     trusted_node_key_rate,
 )
+from .format_impact import (
+    channel_snr_db,
+    format_ber,
+    format_capacity_bps,
+    minimum_launch_for_format_dbm,
+    FormatImpact,
+    format_qkd_tradeoff,
+)
 
 __all__ = [
     "binary_entropy",
@@ -77,4 +85,10 @@ __all__ = [
     "mdi_qkd_key_rate",
     "tf_qkd_key_rate",
     "trusted_node_key_rate",
+    "channel_snr_db",
+    "format_ber",
+    "format_capacity_bps",
+    "minimum_launch_for_format_dbm",
+    "FormatImpact",
+    "format_qkd_tradeoff",
 ]
