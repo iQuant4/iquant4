@@ -54,6 +54,15 @@ from .eye import (
     shaped_nrz_waveform,
     eye_metrics,
 )
+from .constellation import (
+    evm_rms,
+    mer_db,
+    evm_to_snr_db,
+    snr_db_to_evm,
+    evm_to_ber,
+    ConstellationDiagram,
+    received_constellation,
+)
 
 __all__ = [
     "q_function",
@@ -100,4 +109,11 @@ __all__ = [
     "build_eye",
     "shaped_nrz_waveform",
     "eye_metrics",
+    "evm_rms",
+    "mer_db",
+    "evm_to_snr_db",
+    "snr_db_to_evm",
+    "evm_to_ber",
+    "ConstellationDiagram",
+    "received_constellation",
 ]
