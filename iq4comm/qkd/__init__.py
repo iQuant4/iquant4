@@ -36,6 +36,11 @@ from .optimize import (
     optimize_launch_power,
     coexistence_reach,
 )
+from .protocols import (
+    mdi_qkd_key_rate,
+    tf_qkd_key_rate,
+    trusted_node_key_rate,
+)
 
 __all__ = [
     "binary_entropy",
@@ -59,4 +64,7 @@ __all__ = [
     "OperatingPoint",
     "optimize_launch_power",
     "coexistence_reach",
+    "mdi_qkd_key_rate",
+    "tf_qkd_key_rate",
+    "trusted_node_key_rate",
 ]
