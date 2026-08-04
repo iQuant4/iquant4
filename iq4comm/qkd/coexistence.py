@@ -156,7 +156,8 @@ def coexistence_cv_key_rate(distance_km: float, launch_power_dbm_per_channel: fl
                             cv_detector: CVDetector | None = None,
                             raman: RamanModel | None = None,
                             modulation_variance: float = 4.0,
-                            intrinsic_excess_noise: float = 0.01) -> float:
+                            intrinsic_excess_noise: float = 0.01,
+                            finite: "FiniteKeyParams | None" = None) -> float:
     """CV-QKD (GG02 homodyne) key rate with classical DWDM channels present."""
     p_ch_w = 1e-3 * 10.0 ** (launch_power_dbm_per_channel / 10.0)
     p_total = p_ch_w * n_channels
@@ -164,7 +165,8 @@ def coexistence_cv_key_rate(distance_km: float, launch_power_dbm_per_channel: fl
     t = fiber.transmissivity(distance_km)
     return cvqkd_homodyne_key_rate(
         t, modulation_variance=modulation_variance,
-        excess_noise=intrinsic_excess_noise + xi_raman, detector=cv_detector)
+        excess_noise=intrinsic_excess_noise + xi_raman, detector=cv_detector,
+        finite=finite)
 
 
 def coexistence_dv_key_rate(distance_km: float, launch_power_dbm_per_channel: float,

@@ -11,6 +11,8 @@ from iq4comm.qkd import (
     finite_key_fraction,
     bb84_decoy_key_rate,
     tf_qkd_key_rate,
+    cvqkd_homodyne_key_rate,
+    cvqkd_rate_vs_distance,
 )
 
 GAIN, ERROR = 1e-3, 0.03
@@ -59,6 +61,24 @@ def test_tf_finite_key_supported():
     a = tf_qkd_key_rate(eta)
     f = tf_qkd_key_rate(eta, finite=FiniteKeyParams(1e11, 1e-9))
     assert 0.0 <= f <= a + 1e-12
+
+
+def test_cv_finite_converges_and_reduces():
+    t = SMF28.transmissivity(40.0)
+    asym = cvqkd_homodyne_key_rate(t)
+    huge = cvqkd_homodyne_key_rate(t, finite=FiniteKeyParams(1e14, 1e-9))
+    small = cvqkd_homodyne_key_rate(t, finite=FiniteKeyParams(1e8, 1e-9))
+    assert huge == pytest.approx(asym, rel=1e-2)     # -> asymptotic as N grows
+    assert 0.0 <= small < asym                       # finite penalty
+
+
+def test_cv_finite_reach_shrinks_with_block_size():
+    d = np.arange(0, 360, 2.0)
+    def reach(N):
+        fp = None if N is None else FiniteKeyParams(N, 1e-9)
+        r = cvqkd_rate_vs_distance(d, finite=fp)
+        return d[np.max(np.where(r > 0))]
+    assert reach(None) > reach(1e12) > reach(1e10) > reach(1e8) > 0
 
 
 def test_finite_params_validation():

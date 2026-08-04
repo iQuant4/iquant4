@@ -66,7 +66,7 @@ def protocol_coexistence_key_rate(protocol: str, distance_km: float,
     if proto == "cv":
         return coexistence_cv_key_rate(
             distance_km, launch_dbm_per_channel, n_channels, fiber=fiber,
-            cv_detector=cv_detector, raman=raman)
+            cv_detector=cv_detector, raman=raman, finite=finite)
 
     bg = raman_background_yield(p_total, distance_km, fiber=fiber, raman=raman,
                                detector_efficiency=det.efficiency)
