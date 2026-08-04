@@ -28,6 +28,7 @@ from scipy.optimize import brentq
 from iqcore.fiber import Amplifier, FiberSpec, SMF28
 from iq4comm.dsp import ber_theory
 from iq4comm.dsp.gn_model import nli_coefficient, ase_power_w, effective_snr
+from iq4comm.dsp.fec import FECCode
 from iq4comm.modulation import get_constellation
 from .optimize import protocol_coexistence_key_rate
 
@@ -64,12 +65,24 @@ def format_ber(fmt: str, snr_db: float) -> float:
     return ber_theory(fmt, ebn0_db)
 
 
+def _close_threshold(min_ber: float, fec: FECCode | None) -> float:
+    """Pre-FEC BER a channel must beat to 'close': a code's threshold, or ``min_ber``."""
+    return fec.threshold_ber() if fec is not None else min_ber
+
+
 def format_capacity_bps(fmt: str, launch_dbm_per_channel: float, n_channels: int,
                         distance_km: float, *, min_ber: float = FEC_BER,
+                        fec: FECCode | None = None,
                         fiber: FiberSpec = SMF28, symbol_rate_baud: float = 32e9,
                         channel_spacing_hz: float = 50e9,
                         noise_figure_db: float = 5.0):
-    """Classical capacity (bits/s) delivered by ``fmt`` if it closes, else 0.
+    """Net classical capacity (bits/s) delivered by ``fmt`` if it closes, else 0.
+
+    With a :class:`~iq4comm.dsp.fec.FECCode`, the link "closes" when its channel
+    BER is under that code's *computed* threshold (not the hard-coded 3.8e-3),
+    and the returned capacity is the *net* information rate ``n*Rs*k*R`` -- the
+    FEC overhead is charged honestly.  Without a code the legacy behaviour holds:
+    close at ``min_ber`` and report the raw (pre-overhead) rate.
 
     Returns ``(capacity_bps, ber, closes)``.
     """
@@ -79,26 +92,31 @@ def format_capacity_bps(fmt: str, launch_dbm_per_channel: float, n_channels: int
                          noise_figure_db=noise_figure_db)
     ber = format_ber(fmt, snr)
     k = get_constellation(fmt).bits_per_symbol
-    closes = ber <= min_ber
-    capacity = n_channels * symbol_rate_baud * k if closes else 0.0
+    closes = ber <= _close_threshold(min_ber, fec)
+    rate = fec.rate if fec is not None else 1.0
+    capacity = n_channels * symbol_rate_baud * k * rate if closes else 0.0
     return capacity, ber, closes
 
 
 def minimum_launch_for_format_dbm(fmt: str, n_channels: int, distance_km: float, *,
-                                  min_ber: float = FEC_BER, fiber: FiberSpec = SMF28,
+                                  min_ber: float = FEC_BER, fec: FECCode | None = None,
+                                  fiber: FiberSpec = SMF28,
                                   symbol_rate_baud: float = 32e9,
                                   channel_spacing_hz: float = 50e9,
                                   noise_figure_db: float = 5.0,
                                   power_bounds_dbm: tuple[float, float] = (-30.0, 10.0)):
     """Lowest launch power (dBm/ch) at which ``fmt`` meets the BER target.
 
-    Returns None if the format never closes in ``power_bounds_dbm`` (its required
-    SNR exceeds the GN-limited maximum at this reach/loading).
+    With a :class:`~iq4comm.dsp.fec.FECCode` the target is that code's threshold,
+    so a stronger code lets the format close at a *lower* launch power -- which,
+    in coexistence, is exactly the power headroom handed back to the QKD channel.
+    Returns None if the format never closes in ``power_bounds_dbm``.
     """
     lo, hi = power_bounds_dbm
+    threshold = _close_threshold(min_ber, fec)
 
     def margin(p):
-        return min_ber - format_ber(fmt, channel_snr_db(
+        return threshold - format_ber(fmt, channel_snr_db(
             p, n_channels, distance_km, fiber=fiber,
             symbol_rate_baud=symbol_rate_baud, channel_spacing_hz=channel_spacing_hz,
             noise_figure_db=noise_figure_db))
@@ -131,6 +149,7 @@ def format_qkd_tradeoff(distance_km: float, n_channels: int,
                         launch_dbm_per_channel: float, *,
                         formats=("OOK", "QPSK", "16QAM", "64QAM"),
                         qkd_protocol: str = "dv", min_ber: float = FEC_BER,
+                        fec: FECCode | None = None,
                         fiber: FiberSpec = SMF28, symbol_rate_baud: float = 32e9,
                         channel_spacing_hz: float = 50e9, noise_figure_db: float = 5.0,
                         **qkd_kwargs) -> list[FormatImpact]:
@@ -148,7 +167,7 @@ def format_qkd_tradeoff(distance_km: float, n_channels: int,
     for fmt in formats:
         cap, _ber, closes = format_capacity_bps(
             fmt, launch_dbm_per_channel, n_channels, distance_km, min_ber=min_ber,
-            fiber=fiber, symbol_rate_baud=symbol_rate_baud,
+            fec=fec, fiber=fiber, symbol_rate_baud=symbol_rate_baud,
             channel_spacing_hz=channel_spacing_hz, noise_figure_db=noise_figure_db)
         out.append(FormatImpact(fmt, launch_dbm_per_channel, cap, closes, qkd))
     return out

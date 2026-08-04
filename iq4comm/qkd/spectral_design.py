@@ -31,6 +31,7 @@ from math import floor, log10
 
 from iqcore.fiber import FiberSpec, SMF28
 from iq4comm.dsp.pulse_shaping import nyquist_channel_spacing_hz
+from iq4comm.dsp.fec import FECCode
 from .format_impact import FEC_BER, format_capacity_bps
 from .optimize import protocol_coexistence_key_rate
 
@@ -80,6 +81,7 @@ def grid_fill_tradeoff(distance_km: float, optical_band_hz: float,
                        guard_fraction: float = 0.0, qkd_protocol: str = "dv",
                        symbol_rate_baud: float = 32e9, fiber: FiberSpec = SMF28,
                        noise_figure_db: float = 5.0, min_ber: float = FEC_BER,
+                       fec: FECCode | None = None,
                        **qkd_kwargs) -> list[GridFillPoint]:
     """Sweep roll-off over a fixed optical band; return the capacity/QKD tradeoff.
 
@@ -99,7 +101,7 @@ def grid_fill_tradeoff(distance_km: float, optical_band_hz: float,
             continue
         cap, _ber, closes = format_capacity_bps(
             fmt, launch_dbm_per_channel, n_ch, distance_km, min_ber=min_ber,
-            fiber=fiber, symbol_rate_baud=symbol_rate_baud,
+            fec=fec, fiber=fiber, symbol_rate_baud=symbol_rate_baud,
             channel_spacing_hz=spacing, noise_figure_db=noise_figure_db)
         qkd = protocol_coexistence_key_rate(
             qkd_protocol, distance_km, launch_dbm_per_channel, n_ch,
