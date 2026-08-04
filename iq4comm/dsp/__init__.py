@@ -43,6 +43,17 @@ from .fec import (
     FEC_CODES,
     get_fec_code,
 )
+from .eye import (
+    q_factor,
+    q_factor_db,
+    q_to_ber,
+    ber_to_q,
+    cluster_binary_levels,
+    EyeDiagram,
+    build_eye,
+    shaped_nrz_waveform,
+    eye_metrics,
+)
 
 __all__ = [
     "q_function",
@@ -80,4 +91,13 @@ __all__ = [
     "coded_net_bitrate_bps",
     "FEC_CODES",
     "get_fec_code",
+    "q_factor",
+    "q_factor_db",
+    "q_to_ber",
+    "ber_to_q",
+    "cluster_binary_levels",
+    "EyeDiagram",
+    "build_eye",
+    "shaped_nrz_waveform",
+    "eye_metrics",
 ]
