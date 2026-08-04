@@ -55,6 +55,12 @@ from .format_impact import (
     FormatImpact,
     format_qkd_tradeoff,
 )
+from .spectral_design import (
+    channels_in_band,
+    GridFillPoint,
+    grid_fill_tradeoff,
+    best_rolloff_for_key_rate,
+)
 
 __all__ = [
     "binary_entropy",
@@ -91,4 +97,8 @@ __all__ = [
     "minimum_launch_for_format_dbm",
     "FormatImpact",
     "format_qkd_tradeoff",
+    "channels_in_band",
+    "GridFillPoint",
+    "grid_fill_tradeoff",
+    "best_rolloff_for_key_rate",
 ]
