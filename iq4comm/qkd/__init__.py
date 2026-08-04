@@ -31,6 +31,11 @@ from .coexistence import (
     coexistence_curve,
     CoexistencePoint,
 )
+from .optimize import (
+    OperatingPoint,
+    optimize_launch_power,
+    coexistence_reach,
+)
 
 __all__ = [
     "binary_entropy",
@@ -51,4 +56,7 @@ __all__ = [
     "classical_capacity_bps",
     "coexistence_curve",
     "CoexistencePoint",
+    "OperatingPoint",
+    "optimize_launch_power",
+    "coexistence_reach",
 ]
