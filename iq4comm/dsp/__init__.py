@@ -16,6 +16,20 @@ from .gn_model import (
     gn_operating_point,
     GNOperatingPoint,
 )
+from .pulse_shaping import (
+    PulseShape,
+    rrc_impulse_response,
+    rc_impulse_response,
+    sinc_impulse_response,
+    rect_impulse_response,
+    gaussian_impulse_response,
+    impulse_response,
+    occupied_bandwidth_hz,
+    nyquist_channel_spacing_hz,
+    spectral_efficiency_bits_per_hz,
+    residual_isi,
+    PULSE_SHAPES,
+)
 
 __all__ = [
     "q_function",
@@ -30,4 +44,16 @@ __all__ = [
     "ase_power_w",
     "gn_operating_point",
     "GNOperatingPoint",
+    "PulseShape",
+    "rrc_impulse_response",
+    "rc_impulse_response",
+    "sinc_impulse_response",
+    "rect_impulse_response",
+    "gaussian_impulse_response",
+    "impulse_response",
+    "occupied_bandwidth_hz",
+    "nyquist_channel_spacing_hz",
+    "spectral_efficiency_bits_per_hz",
+    "residual_isi",
+    "PULSE_SHAPES",
 ]
