@@ -58,6 +58,15 @@ from .wdm import (
     CWDM_WAVELENGTHS_NM,
     C_BAND_NM,
 )
+from .wss import (
+    WSSFilter,
+    cascaded_bandwidth_3db_ghz,
+    filter_narrowing_penalty_db,
+    Roadm,
+    RouteResult,
+    Lightpath,
+    lightpath_penalty_db,
+)
 
 __all__ = [
     "FiberSpec",
@@ -87,4 +96,11 @@ __all__ = [
     "wavelength_nm_to_frequency_hz",
     "CWDM_WAVELENGTHS_NM",
     "C_BAND_NM",
+    "WSSFilter",
+    "cascaded_bandwidth_3db_ghz",
+    "filter_narrowing_penalty_db",
+    "Roadm",
+    "RouteResult",
+    "Lightpath",
+    "lightpath_penalty_db",
 ]
