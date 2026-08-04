@@ -30,6 +30,19 @@ from .pulse_shaping import (
     residual_isi,
     PULSE_SHAPES,
 )
+from .fec import (
+    code_rate,
+    overhead_percent,
+    rs_symbol_error_prob,
+    rs_post_decode_ber,
+    rs_threshold_ber,
+    required_ebn0_db,
+    FECCode,
+    net_coding_gain_db,
+    coded_net_bitrate_bps,
+    FEC_CODES,
+    get_fec_code,
+)
 
 __all__ = [
     "q_function",
@@ -56,4 +69,15 @@ __all__ = [
     "spectral_efficiency_bits_per_hz",
     "residual_isi",
     "PULSE_SHAPES",
+    "code_rate",
+    "overhead_percent",
+    "rs_symbol_error_prob",
+    "rs_post_decode_ber",
+    "rs_threshold_ber",
+    "required_ebn0_db",
+    "FECCode",
+    "net_coding_gain_db",
+    "coded_net_bitrate_bps",
+    "FEC_CODES",
+    "get_fec_code",
 ]
