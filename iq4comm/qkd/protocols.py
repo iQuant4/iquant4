@@ -31,7 +31,8 @@ from __future__ import annotations
 from math import sqrt
 
 from iqcore.fiber import FiberSpec, SMF28
-from .dv import DetectorModel, binary_entropy, bb84_decoy_key_rate
+from .dv import DetectorModel, bb84_decoy_key_rate
+from .finite_key import FiniteKeyParams, finite_key_fraction
 
 __all__ = [
     "mdi_qkd_key_rate",
@@ -40,38 +41,37 @@ __all__ = [
 ]
 
 
-def _one_way_rate(gain: float, error: float, f: float,
-                  sift: float = 0.5) -> float:
-    """Generic sifted one-way rate ``sift * G * [1 - (1+f) H2(e)]``."""
-    if gain <= 0.0:
-        return 0.0
-    e = min(max(error, 0.0), 0.5)
-    return max(sift * gain * (1.0 - (1.0 + f) * binary_entropy(e)), 0.0)
-
-
 def mdi_qkd_key_rate(transmissivity: float, *,
-                     detector: DetectorModel | None = None) -> float:
-    """MDI-QKD asymptotic key rate (bits/pulse).
+                     detector: DetectorModel | None = None,
+                     background_yield: float = 0.0,
+                     finite: FiniteKeyParams | None = None) -> float:
+    """MDI-QKD key rate (bits/pulse), asymptotic or finite-key.
 
     Central untrusted relay at the midpoint: the single-photon Bell-measurement
     coincidence scales as the *product* of the two arm transmittances, i.e. as
     the full-path ``transmissivity`` (like BB84), with a coincidence penalty.
+    ``background_yield`` injects extra relay-detector clicks (the coexistence
+    hook); ``finite`` switches on the finite-key model.
     """
     det = detector or DetectorModel()
     eta = transmissivity
     # Two-photon coincidence: (eta_d * sqrt(eta))^2 = eta_d^2 * eta, x1/2 relay.
     t_eff = 0.5 * det.efficiency ** 2 * eta
-    y0 = 2.0 * det.dark_count_prob
+    y0 = 2.0 * det.dark_count_prob + background_yield
     gain = y0 + t_eff
     error = (0.5 * y0 + det.misalignment * t_eff) / gain if gain > 0 else 0.5
-    return _one_way_rate(gain, error, det.error_correction_eff)
+    return finite_key_fraction(gain, error,
+                               error_correction_eff=det.error_correction_eff,
+                               params=finite)
 
 
 def tf_qkd_key_rate(transmissivity: float, *,
                     detector: DetectorModel | None = None,
                     interferometric_error: float = 0.02,
-                    protocol_efficiency: float = 0.25) -> float:
-    """Twin-Field QKD asymptotic key rate (bits/pulse).
+                    protocol_efficiency: float = 0.25,
+                    background_yield: float = 0.0,
+                    finite: FiniteKeyParams | None = None) -> float:
+    """Twin-Field QKD key rate (bits/pulse), asymptotic or finite-key.
 
     Single-photon interference at a central node: a click needs only *one* photon
     to reach the midpoint, so the rate scales as ``sqrt(eta)`` and can exceed the
@@ -79,16 +79,19 @@ def tf_qkd_key_rate(transmissivity: float, *,
     events that yield key after phase post-selection / the sending fraction --
     it is why TF-QKD is *lower* than direct BB84 at short range and only wins
     once ``sqrt(eta)`` overtakes ``eta`` at long range.  ``interferometric_error``
-    is the phase-stability penalty TF pays for global phase locking.
+    is the phase-stability penalty; ``background_yield`` is the coexistence hook;
+    ``finite`` switches on the finite-key model.
     """
     det = detector or DetectorModel()
     eta = transmissivity
     t_eff = protocol_efficiency * det.efficiency * sqrt(eta)   # sqrt(eta) scaling
-    y0 = 2.0 * det.dark_count_prob
+    y0 = 2.0 * det.dark_count_prob + background_yield
     gain = y0 + t_eff
     e_d = det.misalignment + interferometric_error
     error = (0.5 * y0 + e_d * t_eff) / gain if gain > 0 else 0.5
-    return _one_way_rate(gain, error, det.error_correction_eff)
+    return finite_key_fraction(gain, error,
+                               error_correction_eff=det.error_correction_eff,
+                               params=finite)
 
 
 def trusted_node_key_rate(distance_km: float, n_nodes: int, *,

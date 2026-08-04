@@ -22,11 +22,12 @@ Reference: Lo, Ma & Chen, "Decoy State Quantum Key Distribution," PRL 94, 2005.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import exp, log2
+from math import exp, log, log2, sqrt
 
 import numpy as np
 
 from iqcore.fiber import FiberSpec, SMF28
+from .finite_key import FiniteKeyParams
 
 __all__ = [
     "binary_entropy",
@@ -78,7 +79,8 @@ class DetectorModel:
 def bb84_decoy_key_rate(transmissivity: float, mu: float = 0.5, *,
                         detector: DetectorModel | None = None,
                         background_yield: float = 0.0,
-                        sift_factor: float = 0.5) -> float:
+                        sift_factor: float = 0.5,
+                        finite: FiniteKeyParams | None = None) -> float:
     """Asymptotic decoy-state BB84 secret-key rate (bits/pulse).
 
     Parameters
@@ -121,8 +123,22 @@ def bb84_decoy_key_rate(transmissivity: float, mu: float = 0.5, *,
     q1 = mu * exp(-mu) * y1
     e1 = (e0 * y0 + e_d * eta_sys) / y1 if y1 > 0 else 0.5
 
-    rate = sift_factor * (q1 * (1.0 - binary_entropy(e1))
-                          - q_mu * f * binary_entropy(e_mu))
+    if finite is None:
+        rate = sift_factor * (q1 * (1.0 - binary_entropy(e1))
+                              - q_mu * f * binary_entropy(e_mu))
+        return max(rate, 0.0)
+
+    # Finite-key: fluctuation on the single-photon phase error + O(1/N) terms.
+    n_pulses = finite.block_size
+    eps = finite.eps_security
+    n1 = sift_factor * q1 * n_pulses           # sifted single-photon detections
+    if n1 < 1.0:
+        return 0.0
+    t1 = sqrt(log(1.0 / eps) / (2.0 * n1))
+    e1_ub = min(e1 + t1, 0.5)
+    finite_terms = (6.0 * log2(21.0 / eps) + log2(2.0 / eps)) / n_pulses
+    rate = (sift_factor * (q1 * (1.0 - binary_entropy(e1_ub))
+                           - q_mu * f * binary_entropy(e_mu)) - finite_terms)
     return max(rate, 0.0)
 
 

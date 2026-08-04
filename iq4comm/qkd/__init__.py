@@ -31,10 +31,16 @@ from .coexistence import (
     coexistence_curve,
     CoexistencePoint,
 )
+from .finite_key import (
+    FiniteKeyParams,
+    finite_key_fraction,
+)
 from .optimize import (
     OperatingPoint,
     optimize_launch_power,
     coexistence_reach,
+    protocol_coexistence_key_rate,
+    select_best_protocol,
 )
 from .protocols import (
     mdi_qkd_key_rate,
@@ -64,6 +70,10 @@ __all__ = [
     "OperatingPoint",
     "optimize_launch_power",
     "coexistence_reach",
+    "protocol_coexistence_key_rate",
+    "select_best_protocol",
+    "FiniteKeyParams",
+    "finite_key_fraction",
     "mdi_qkd_key_rate",
     "tf_qkd_key_rate",
     "trusted_node_key_rate",
