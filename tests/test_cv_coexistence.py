@@ -23,6 +23,14 @@ def test_cv_excess_noise_scales_and_zero():
     assert cv_raman_excess_noise(0.0, 50.0) == 0.0
 
 
+def test_cv_excess_noise_is_input_referred():
+    """xi_R = n_bar / T_q: input-referred, with homodyne polarization selection."""
+    p_tot, d = 1e-3, 50.0
+    n_bar = raman_photon_occupation(p_tot, d)
+    t = SMF28.transmissivity(d)
+    assert cv_raman_excess_noise(p_tot, d) == pytest.approx(n_bar / t)
+
+
 def test_dv_background_is_occupation_times_modes():
     """DV background = n_bar * (B_filter * t_gate) * eta -- the shared-mode link."""
     raman = RamanModel()
@@ -49,11 +57,25 @@ def test_more_classical_power_lowers_cv_rate():
     assert coexistence_cv_key_rate(d, 5.0, 40) == 0.0
 
 
-def test_cv_delivers_higher_rate_than_dv_when_both_secure():
-    """Where both protocols close a key, CV yields the higher rate here."""
+def test_cv_more_restrictive_than_dv_at_long_reach():
+    """At high loss the input-referred CV excess noise (xi_R = n_bar/T_q) is
+    amplified by 1/T_q, so CV tolerates less classical launch than DV. This is
+    the corrected DV/CV ordering: the CV secure boundary sits *below* DV's."""
     from iq4comm.qkd import coexistence_dv_key_rate
-    d = 50.0
-    for p in (-18, -16, -14):
-        cv = coexistence_cv_key_rate(d, p, 20)
-        dv = coexistence_dv_key_rate(d, p, 20)
-        assert cv > 0 and dv > 0 and cv > dv
+    from iq4comm.qkd.raman_spectrum import band_raman_coefficient
+    d, nch, r_min = 80.0, 8, 1e-6
+    raman = RamanModel(
+        raman_coeff_per_km_per_nm=band_raman_coefficient(1546.12, 1550.0),
+        quantum_wavelength_nm=1550.0)
+    grid = np.linspace(-40.0, 6.0, 921)
+
+    def boundary(fn):
+        vals = np.array([fn(d, p, nch, raman=raman) for p in grid])
+        ok = vals >= r_min
+        return grid[ok][-1] if ok.any() else np.nan
+
+    p_dv = boundary(coexistence_dv_key_rate)
+    p_cv = boundary(coexistence_cv_key_rate)
+    assert p_cv < p_dv                       # CV is the more restrictive protocol
+    assert p_dv == pytest.approx(-13.2, abs=0.5)
+    assert p_cv == pytest.approx(-21.5, abs=1.0)

@@ -53,7 +53,7 @@ _PLANCK_J_S = 6.62607015e-34
 _C_M_PER_S = 2.99792458e8
 
 # --- Measured spontaneous-Raman slopes for standard single-mode fiber --------
-# Patel et al., "Impact of Raman Scattered Noise from Multiple Telecom Channels
+# da Silva et al., "Impact of Raman Scattered Noise from Multiple Telecom Channels
 # on Fiber-Optic QKD Systems," J. Lightwave Technol. 32(13), 2332 (2014);
 # arXiv:1410.0656, Table II.  Slopes are the Raman count-probability per gate
 # per km of fiber per 100 GHz of quantum-classical spectral separation, measured
@@ -70,7 +70,7 @@ class RamanModel:
     """Spontaneous-Raman coexistence-noise parameters.
 
     The default coefficient is **calibrated to measured data**: it reproduces the
-    Configuration-G operating point of Patel et al. (JLT 2014 / arXiv:1410.0656)
+    Configuration-G operating point of da Silva et al. (JLT 2014 / arXiv:1410.0656)
     -- 14 classical channels at -10.5 dBm/channel over 60 km with a 10 GHz filter
     and 2.5 ns gate at 15% detector efficiency, giving ~0.15 Raman counts per gate
     (co-propagating).  Solving the count-probability model at those conditions
@@ -96,7 +96,7 @@ class RamanModel:
         Quantum-channel wavelength (sets the photon energy).
     """
 
-    # Calibrated to Patel et al. JLT 2014 Config G (~0.15 counts/gate); see above.
+    # Calibrated to da Silva et al. JLT 2014 Config G (~0.15 counts/gate); see above.
     raman_coeff_per_km_per_nm: float = 2.5e-8
     filter_bandwidth_nm: float = 0.01
     gate_time_s: float = 1e-10
@@ -141,14 +141,28 @@ def raman_photon_occupation(classical_total_power_w: float, distance_km: float, 
 def cv_raman_excess_noise(classical_total_power_w: float, distance_km: float, *,
                           fiber: FiberSpec = SMF28,
                           raman: RamanModel | None = None) -> float:
-    """CV-QKD excess noise (SNU) from co-propagating classical power.
+    """Input-referred CV-QKD excess noise (SNU) from co-propagating classical power.
 
-    A thermal Raman background of occupation ``n_bar`` adds ``2 * n_bar`` to the
-    quadrature variance (both quadratures) referred to the receiver.
+    ``raman_photon_occupation`` returns the *two-polarization* Raman occupation
+    ``n_bar`` of the detected temporal-spectral mode.  A homodyne local
+    oscillator selects a single polarization, so the CV mode sees ``n_bar / 2``;
+    both quadratures then pick up a receiver-referred excess noise
+    ``xi_rx = 2 * (n_bar / 2) = n_bar``.  The GG02 Holevo bound is evaluated with
+    the noise referred to the *channel input*, which divides by the quantum
+    transmissivity ``T_q`` (equivalently, the manuscript's
+    ``xi_R = 2 * n_bar_pol / T_q``)::
+
+        xi_R = n_bar / T_q .
+
+    This is the single, consistent normalization shared with the DV background
+    ``mu_R = P_R * tau_g / (h nu)`` through ``mu_R = 2 * B_q * tau_g * n_bar_pol``.
     """
     n_bar = raman_photon_occupation(classical_total_power_w, distance_km,
                                     fiber=fiber, raman=raman)
-    return 2.0 * n_bar
+    t = fiber.transmissivity(distance_km)
+    if t <= 0.0:
+        return float("inf")
+    return n_bar / t
 
 
 def coexistence_cv_key_rate(distance_km: float, launch_power_dbm_per_channel: float,
