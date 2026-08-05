@@ -63,6 +63,16 @@ from .constellation import (
     ConstellationDiagram,
     received_constellation,
 )
+from .carrier_recovery import (
+    laser_phase_noise,
+    apply_frequency_offset,
+    estimate_frequency_offset,
+    viterbi_viterbi_cpe,
+    bps_cpe,
+    residual_phase_variance,
+    gardner_ted,
+    oerder_meyr_timing,
+)
 
 __all__ = [
     "q_function",
@@ -116,4 +126,12 @@ __all__ = [
     "evm_to_ber",
     "ConstellationDiagram",
     "received_constellation",
+    "laser_phase_noise",
+    "apply_frequency_offset",
+    "estimate_frequency_offset",
+    "viterbi_viterbi_cpe",
+    "bps_cpe",
+    "residual_phase_variance",
+    "gardner_ted",
+    "oerder_meyr_timing",
 ]
