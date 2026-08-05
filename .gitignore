@@ -83,3 +83,10 @@ Desktop.ini
 
 # Local archive and patch bundles
 *.zip
+
+# Local hosted-verification helpers, generated standalone previews, and scratch data
+/iQuant4_HOSTED_VERIFY_*.ps1
+/iQuant4_showcase_standalone.html
+/iQuant4_*_preview.zip
+/lossy_cat_metrics.csv
+/quadrature_measurement_numbered.txt
