@@ -91,7 +91,7 @@ def test_distribution_metadata_and_package_discovery() -> None:
     )
 
     assert metadata["project"]["name"] == "iq4comm"
-    assert metadata["project"]["version"] == "0.1.0a1"
+    assert metadata["project"]["version"] == "0.2.0a1"
     assert metadata["project"]["requires-python"] == ">=3.10"
     assert metadata["tool"]["setuptools"]["packages"]["find"]["include"] == [
         "iqcore*",
@@ -100,7 +100,7 @@ def test_distribution_metadata_and_package_discovery() -> None:
 
 
 def test_public_versions_match_distribution_version() -> None:
-    assert iqcore.__version__ == "0.1.0a1"
+    assert iqcore.__version__ == "0.2.0a1"
     assert iq4comm.__version__ == iqcore.__version__
 
 

@@ -141,7 +141,7 @@ def test_alpha_quickstart_runs_headlessly(capsys: pytest.CaptureFixture[str]) ->
     )
 
     output = capsys.readouterr().out
-    assert "iQuant4 alpha version: 0.1.0a1" in output
+    assert "iQuant4 alpha version: 0.2.0a1" in output
     assert "Wigner normalization:" in output
     assert "20 km PNR conditional BER:" in output
 

@@ -40,7 +40,7 @@ essentially free.
 ```bash
 python -m venv .venv
 # Windows:  .\.venv\Scripts\activate      macOS/Linux:  source .venv/bin/activate
-pip install -e ".[dev]"          # core + tests; add ,tomography for CV-QKD SDP tools
+pip install -e ".[dev,tomography]"   # core, tests, and CV-QKD SDP tools
 ```
 
 Requires Python 3.10+ and NumPy / SciPy / Matplotlib (installed automatically).
@@ -118,9 +118,21 @@ iq4comm --version
 iq4comm doctor              # environment + reference-physics self-check (add --json)
 ```
 
+## Showcase & offline docs
+
+Generate the flagship showcase — figures, data, and a self-contained HTML
+dashboard — with one command:
+
+```bash
+iq4comm showcase all --output-dir showcase_output   # then open showcase_output/index.html
+```
+
+Guides: [docs/tutorials/alpha_showcase.md](docs/tutorials/alpha_showcase.md) and
+[docs/tutorials/showcase_dashboard.md](docs/tutorials/showcase_dashboard.md).
+
 ## Status & scope
 
-Developer alpha (`0.2.0a1`) — the physics APIs are stabilising but may still
+**Developer Alpha** (`0.2.0a1`) — the physics APIs are stabilising but may still
 change. Models are engineering-grade: asymptotic or first-order in several places
 (documented in `VALIDATION.md`), and the coexistence Raman coefficient is
 calibrated to a single published operating point (recalibrate to your own
