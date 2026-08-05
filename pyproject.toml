@@ -45,7 +45,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/iQuant4/iquant4"
+Homepage = "https://iquant4.com"
 Repository = "https://github.com/iQuant4/iquant4"
 Documentation = "https://github.com/iQuant4/iquant4/tree/main/docs"
 Issues = "https://github.com/iQuant4/iquant4/issues"

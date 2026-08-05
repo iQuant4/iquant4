@@ -9,6 +9,8 @@
 [![Validation](https://img.shields.io/badge/validation-21%2F21%20checks-brightgreen)](VALIDATION.md)
 [![Status](https://img.shields.io/badge/status-developer%20alpha%200.2.0a1-orange)](CHANGELOG.md)
 
+**[iquant4.com](https://iquant4.com)** · [GitHub](https://github.com/iQuant4/iquant4)
+
 iQuant4 is an engineering-grade simulation platform for fiber-optic links. You
 describe a fiber span once, and the same physical model gives you **classical
 capacity** (BER, OSNR, reach, 400G coherent design) *and* **quantum key
