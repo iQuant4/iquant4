@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>iQuant4 — Coexistence Explorer</title>
+<style>
+  :root{
+    --bg:#0e1420; --panel:#161f2e; --panel2:#1d283a; --edge:#2a3850;
+    --ink:#e8eef7; --dim:#93a4bd; --accent:#5aa9e6; --good:#43c59e; --bad:#e05a5a;
+    --q:#b39ddb; --c:#5aa9e6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  header{padding:16px 22px;border-bottom:1px solid var(--edge);
+    display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;background:var(--panel)}
+  header h1{margin:0;font-size:19px;letter-spacing:.3px}
+  header .tag{color:var(--dim);font-size:13px}
+  .wrap{display:grid;grid-template-columns:320px 1fr;gap:18px;padding:18px;max-width:1400px;margin:0 auto}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:16px}
+  .card h2{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim)}
+  .ctrl{margin-bottom:15px}
+  .ctrl label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+  .ctrl label b{color:var(--accent);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--accent);height:4px}
+  select{width:100%;background:var(--panel2);color:var(--ink);border:1px solid var(--edge);
+    border-radius:8px;padding:8px;font-size:13px}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{flex:1;background:var(--panel2);color:var(--dim);border:1px solid var(--edge);
+    border-radius:8px;padding:7px 4px;font-size:12px;cursor:pointer;min-width:56px}
+  .seg button.on{background:var(--accent);color:#06101d;border-color:var(--accent);font-weight:700}
+  canvas{width:100%;display:block;border-radius:10px}
+  .verdict{padding:12px 14px;border-radius:10px;font-weight:700;font-size:15px;margin-bottom:14px;
+    display:flex;align-items:center;gap:10px}
+  .verdict.ok{background:rgba(67,197,158,.14);color:var(--good);border:1px solid rgba(67,197,158,.4)}
+  .verdict.no{background:rgba(224,90,90,.13);color:var(--bad);border:1px solid rgba(224,90,90,.4)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{background:var(--panel2);border:1px solid var(--edge);border-radius:10px;padding:11px 13px}
+  .stat .k{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+  .stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:3px}
+  .stat .u{font-size:12px;color:var(--dim);font-weight:400}
+  .hint{color:var(--dim);font-size:12px;line-height:1.55;margin-top:12px}
+  .foot{color:var(--dim);font-size:11px;text-align:center;padding:6px 18px 22px}
+  .legdot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+</style>
+</head>
+<body>
+<header>
+  <h1>iQuant4 · Coexistence Explorer</h1>
+  <span class="tag">classical DWDM &amp; quantum key distribution on one fiber — drag any knob, watch both move</span>
+</header>
+
+<div class="wrap">
+  <!-- CONTROLS -->
+  <div class="card">
+    <h2>Design knobs</h2>
+
+    <div class="ctrl">
+      <label>Distance <b><span id="dv">40</span> km</b></label>
+      <input type="range" id="dist" min="5" max="120" value="40" step="1"/>
+    </div>
+    <div class="ctrl">
+      <label>Launch power / channel <b><span id="pv">-16</span> dBm</b></label>
+      <input type="range" id="pwr" min="-30" max="4" value="-16" step="0.5"/>
+    </div>
+    <div class="ctrl">
+      <label># DWDM channels <b><span id="nv">40</span></b></label>
+      <input type="range" id="nch" min="1" max="120" value="40" step="1"/>
+    </div>
+    <div class="ctrl">
+      <label>Pulse roll-off β <b><span id="bv">0.20</span></b></label>
+      <input type="range" id="beta" min="0.02" max="1" value="0.2" step="0.01"/>
+    </div>
+    <div class="ctrl">
+      <label>ROADM nodes on route <b><span id="rv">0</span></b></label>
+      <input type="range" id="roadm" min="0" max="12" value="0" step="1"/>
+    </div>
+
+    <div class="ctrl">
+      <label>Modulation format</label>
+      <div class="seg" id="fmtSeg">
+        <button data-v="OOK">OOK</button>
+        <button data-v="QPSK">QPSK</button>
+        <button data-v="16QAM" class="on">16-QAM</button>
+        <button data-v="64QAM">64-QAM</button>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label>Forward error correction</label>
+      <select id="fec">
+        <option value="none">None (uncoded, thr 3.8e-3)</option>
+        <option value="RS(255,239)">RS(255,239) — 6.7% OH</option>
+        <option value="KP4">KP4 RS(544,514) — 5.8% OH</option>
+        <option value="HD-FEC-7%" selected>7% HD-FEC (staircase)</option>
+        <option value="SD-FEC-20%">20% SD-FEC (LDPC)</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>QKD protocol</label>
+      <div class="seg" id="protoSeg">
+        <button data-v="dv" class="on">DV-BB84</button>
+        <button data-v="tf">Twin-Field</button>
+      </div>
+    </div>
+    <div class="hint">
+      The quantum signal can't be amplified, so every ROADM is pure loss on the key rate,
+      and the classical launch power that closes the link sets the Raman noise the qubit must survive.
+      Coexistence lives in the window where both hold.
+    </div>
+  </div>
+
+  <!-- OUTPUTS -->
+  <div>
+    <div class="card" style="margin-bottom:18px">
+      <div id="verdict" class="verdict ok">✓ coexistence feasible here</div>
+      <div class="grid">
+        <div class="stat"><div class="k">Classical link</div><div class="v" id="stClose">closes</div></div>
+        <div class="stat"><div class="k">Channel BER</div><div class="v" id="stBer">—</div></div>
+        <div class="stat"><div class="k">Net capacity</div><div class="v" id="stCap">— <span class="u">Tb/s</span></div></div>
+        <div class="stat"><div class="k">QKD secret-key rate</div><div class="v" id="stQkd">— <span class="u">bits/pulse</span></div></div>
+        <div class="stat"><div class="k">Total launch power</div><div class="v" id="stTot">— <span class="u">dBm</span></div></div>
+        <div class="stat"><div class="k">Raman background</div><div class="v" id="stRaman">— <span class="u">/gate</span></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Coexistence window — where classical DWDM &amp; QKD share the fiber</h2>
+      <canvas id="map" width="820" height="470"></canvas>
+      <div class="hint">
+        <span class="legdot" style="background:#3a4761"></span>classical fails (too little power) &nbsp;
+        <span class="legdot" style="background:rgba(90,169,230,.55)"></span>coexistence window &nbsp;
+        <span class="legdot" style="background:#e05a5a"></span>QKD dies (Raman) &nbsp;
+        <span class="legdot" style="background:#ffd24a"></span>your operating point
+        &nbsp;— the window pinches shut with distance; try Twin-Field to extend it.
+      </div>
+    </div>
+  </div>
+</div>
+<div class="foot">iQuant4 — physics computed live in your browser (GN model · decoy BB84 / Twin-Field · calibrated spontaneous-Raman coexistence · cascaded-WSS narrowing). Illustrative engineering model.</div>
+
+<script>
+"use strict";
+// ---------- math helpers ----------
+const LN2=Math.log(2), LN10=Math.log(10);
+const log2=x=>Math.log(x)/LN2, log10=x=>Math.log(x)/LN10;
+const asinh=x=>Math.log(x+Math.sqrt(x*x+1));
+function erfc(x){ // Abramowitz-Stegun 7.1.26, ~1e-7
+  const z=Math.abs(x), t=1/(1+0.3275911*z);
+  const y=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))));
+  const r=y*Math.exp(-z*z);
+  return x>=0?r:2-r;
+}
+const Q=x=>0.5*erfc(x/Math.SQRT2);
+function H2(x){ if(x<=0||x>=1)return 0; return -x*log2(x)-(1-x)*log2(1-x); }
+
+// ---------- constants (SMF-28) ----------
+const ALPHA_DB=0.2, ALPHA_NEP=ALPHA_DB*LN10/10, GAMMA=1.3, BETA2=21.68;
+const RS=32e9, H=6.62607015e-34, C=2.99792458e8, HV=H*C/1550e-9;
+const NF_DB=5, NFlin=Math.pow(10,NF_DB/10);
+const DET_EFF=0.5, DARK=1e-6, ED=0.02, FEC_EFF=1.16, MU=0.5, SIFT=0.5;
+const RAMAN_RHO=2.5e-8, FILT_NM=0.01, GATE=1e-10;
+const WSS_B3DB=50, WSS_ORDER=3, WSS_IL=3.0;   // GHz, -, dB per stage
+
+const FMT={OOK:{k:1,M:2,t:'ook'},QPSK:{k:2,M:4,t:'psk'},'16QAM':{k:4,M:16,t:'qam'},'64QAM':{k:6,M:64,t:'qam'}};
+const FEC={ 'none':{thr:3.8e-3,rate:1.0}, 'RS(255,239)':{thr:6.54e-5,rate:0.937},
+  'KP4':{thr:1.94e-4,rate:0.945}, 'HD-FEC-7%':{thr:3.8e-3,rate:0.930}, 'SD-FEC-20%':{thr:2.0e-2,rate:0.833} };
+
+const trans=L=>Math.pow(10,-ALPHA_DB*L/10);
+const leff=L=>(1-Math.exp(-ALPHA_NEP*L))/ALPHA_NEP;
+
+// ---------- classical: GN SNR + BER ----------
+function berTheory(fmt,ebn0db){
+  const f=FMT[fmt], ebn0=Math.pow(10,ebn0db/10);
+  if(f.t==='ook') return Q(Math.sqrt(ebn0));
+  if(f.t==='psk') return Q(Math.sqrt(2*ebn0));
+  const co=(4/f.k)*(1-1/Math.sqrt(f.M));
+  return co*Q(Math.sqrt(3*f.k/(f.M-1)*ebn0));
+}
+function snrDb(launchDbm,nch,d,spacingHz){
+  const g=Math.pow(10,(ALPHA_DB*d)/10);
+  const nsp = g>1 ? NFlin*g/(2*(g-1)) : NFlin/2;
+  const ase = nsp*HV*(g-1)*RS;                       // 1 pol, bandwidth Rs
+  const Le=leff(d), LeA=1/ALPHA_NEP;
+  const bw=(nch*spacingHz)/1e12, rs=RS/1e12;
+  const arg=(Math.PI*Math.PI/2)*BETA2*LeA*bw*bw;
+  const eta=((8/27)*GAMMA*GAMMA*Le*Le*asinh(arg))/(Math.PI*BETA2*LeA*rs*rs);
+  const pch=1e-3*Math.pow(10,launchDbm/10);
+  const snr=pch/(ase+eta*pch*pch*pch);
+  return 10*log10(snr);
+}
+// ---------- WSS/ROADM ----------
+function narrowingDb(nRoadm,occHz){
+  if(nRoadm<=0) return 0;
+  const k=nRoadm+1, B=WSS_B3DB*1e9, half=occHz/2, N=161; let s=0;
+  for(let i=0;i<N;i++){ const df=-half+2*half*i/(N-1);
+    const x=2*Math.abs(df)/B; const T=Math.exp(-LN2*Math.pow(x,2*WSS_ORDER)); s+=Math.pow(T,k);}
+  const passed=s/N; return passed<=0?99:-10*log10(passed);
+}
+function roadmLossDb(n){ if(n<=0)return 0; const ex=Math.max(0,n-2); return (2*ex+2)*WSS_IL; }
+
+// ---------- QKD ----------
+function bb84(eta,bg){
+  const es=eta*DET_EFF; let y0=2*DARK+bg; if(y0>1)y0=1;
+  const qmu=y0+1-Math.exp(-es*MU); if(qmu<=0)return 0;
+  const emu=(0.5*y0+ED*(1-Math.exp(-es*MU)))/qmu;
+  const y1=y0+es-y0*es; const q1=MU*Math.exp(-MU)*y1;
+  const e1=y1>0?(0.5*y0+ED*es)/y1:0.5;
+  return Math.max(SIFT*(q1*(1-H2(e1))-qmu*FEC_EFF*H2(emu)),0);
+}
+function tf(eta,bg){
+  const teff=0.25*DET_EFF*Math.sqrt(eta); let y0=2*DARK+bg;
+  const gain=y0+teff; const ed=ED+0.02;
+  const err=gain>0?(0.5*y0+ed*teff)/gain:0.5;
+  return Math.max(SIFT*gain*(1-(1+FEC_EFF)*H2(err)),0);
+}
+function ramanBg(launchDbm,nch,d){
+  const ptot=1e-3*Math.pow(10,launchDbm/10)*nch;
+  const praman=ptot*RAMAN_RHO*FILT_NM*leff(d);
+  return (praman/HV)*GATE*DET_EFF;
+}
+function qkdRate(proto,launchDbm,nch,d,nRoadm){
+  const eta=trans(d)*Math.pow(10,-roadmLossDb(nRoadm)/10);
+  const bg=ramanBg(launchDbm,nch,d);
+  return proto==='tf'?tf(eta,bg):bb84(eta,bg);
+}
+
+// ---------- full operating point ----------
+function evaluate(S){
+  const spacing=RS*(1+S.beta), occ=RS*(1+S.beta);
+  const narrow=narrowingDb(S.roadm,occ);
+  const snr=snrDb(S.pwr,S.nch,S.dist,spacing)-narrow;
+  const f=FMT[S.fmt];
+  const ber=berTheory(S.fmt,snr-10*log10(f.k));
+  const fec=FEC[S.fec];
+  const closes=ber<=fec.thr;
+  const cap=closes ? S.nch*RS*f.k*fec.rate : 0;
+  const skr=qkdRate(S.proto,S.pwr,S.nch,S.dist,S.roadm);
+  const totDbm=S.pwr+10*log10(S.nch);
+  return {ber,closes,cap,skr,totDbm,raman:ramanBg(S.pwr,S.nch,S.dist),
+          feasible:closes&&skr>1e-6};
+}
+// window boundaries for current settings/protocol
+function windowCurves(S){
+  const ds=[],pc=[],ps=[]; const THR=1e-6;
+  for(let d=15;d<=120;d+=2){
+    const spacing=RS*(1+S.beta), occ=RS*(1+S.beta), narrow=narrowingDb(S.roadm,occ);
+    const f=FMT[S.fmt], fec=FEC[S.fec];
+    let close=null, sec=null;
+    for(let p=-30;p<=4;p+=0.5){
+      const snr=snrDb(p,S.nch,d,spacing)-narrow;
+      if(close===null && berTheory(S.fmt,snr-10*log10(f.k))<=fec.thr) close=p;
+      if(qkdRate(S.proto,p,S.nch,d,S.roadm)>THR) sec=p; // max p with qkd alive
+    }
+    ds.push(d); pc.push(close); ps.push(sec);
+  }
+  return {ds,pc,ps};
+}
+
+// ---------- state + wiring ----------
+const S={dist:40,pwr:-16,nch:40,beta:0.2,roadm:0,fmt:'16QAM',fec:'HD-FEC-7%',proto:'dv'};
+const $=id=>document.getElementById(id);
+function bindRange(id,key,fmt){ const el=$(id); el.addEventListener('input',()=>{S[key]=parseFloat(el.value);$(fmt).textContent= key==='beta'?S[key].toFixed(2):S[key]; render();}); }
+bindRange('dist','dist','dv'); bindRange('pwr','pwr','pv'); bindRange('nch','nch','nv');
+bindRange('beta','beta','bv'); bindRange('roadm','roadm','rv');
+function seg(id,key){ $(id).addEventListener('click',e=>{ if(e.target.dataset.v){
+  [...$(id).children].forEach(b=>b.classList.toggle('on',b===e.target)); S[key]=e.target.dataset.v; render();}});}
+seg('fmtSeg','fmt'); seg('protoSeg','proto');
+$('fec').addEventListener('change',()=>{S.fec=$('fec').value;render();});
+
+// ---------- rendering ----------
+function fmtNum(x,d){ if(x===0)return '0'; const e=Math.floor(log10(Math.abs(x)));
+  if(e< -2||e>4) return x.toExponential(d); return x.toFixed(Math.max(0,d-e)); }
+
+function render(){
+  const R=evaluate(S);
+  $('stClose').textContent=R.closes?'closes':'fails';
+  $('stClose').style.color=R.closes?'var(--good)':'var(--bad)';
+  $('stBer').textContent=R.ber.toExponential(1);
+  $('stCap').innerHTML=(R.cap/1e12).toFixed(2)+' <span class="u">Tb/s</span>';
+  $('stQkd').innerHTML=(R.skr>0?R.skr.toExponential(2):'0')+' <span class="u">bits/pulse</span>';
+  $('stTot').innerHTML=R.totDbm.toFixed(1)+' <span class="u">dBm</span>';
+  $('stRaman').innerHTML=R.raman.toExponential(1)+' <span class="u">/gate</span>';
+  const v=$('verdict');
+  if(R.feasible){v.className='verdict ok';v.textContent='✓ coexistence feasible — classical link closes and QKD stays secure';}
+  else if(!R.closes){v.className='verdict no';v.textContent='✗ classical link fails to close — raise launch power, lower format, or use stronger FEC';}
+  else {v.className='verdict no';v.textContent='✗ QKD extinguished — Raman/loss too high; lower launch power, fewer channels/ROADMs, or Twin-Field';}
+  drawMap(R);
+}
+
+function drawMap(R){
+  const cv=$('map'), ctx=cv.getContext('2d');
+  const W=cv.width,Hh=cv.height, mL=52,mR=16,mT=14,mB=38;
+  const x0=15,x1=120,y0=-30,y1=4;
+  const X=d=>mL+(d-x0)/(x1-x0)*(W-mL-mR);
+  const Yy=p=>mT+(y1-p)/(y1-y0)*(Hh-mT-mB);
+  ctx.clearRect(0,0,W,Hh); ctx.fillStyle='#0e1420'; ctx.fillRect(0,0,W,Hh);
+  const {ds,pc,ps}=windowCurves(S);
+  // grey classical-fail region (below pc)
+  ctx.fillStyle='#3a4761';
+  ctx.beginPath(); ctx.moveTo(X(ds[0]),Yy(y0));
+  for(let i=0;i<ds.length;i++){ const p=pc[i]==null?y0:pc[i]; ctx.lineTo(X(ds[i]),Yy(p)); }
+  ctx.lineTo(X(ds[ds.length-1]),Yy(y0)); ctx.closePath(); ctx.fill();
+  // coexistence window (pc..ps where ps>pc)
+  ctx.fillStyle='rgba(90,169,230,.5)';
+  for(let i=0;i<ds.length-1;i++){
+    if(pc[i]==null||ps[i]==null||ps[i]<pc[i]) continue;
+    const a=pc[i],b=ps[i],a2=(pc[i+1]==null?a:pc[i+1]),b2=(ps[i+1]==null?a2:ps[i+1]);
+    if(b2<a2) continue;
+    ctx.beginPath(); ctx.moveTo(X(ds[i]),Yy(a)); ctx.lineTo(X(ds[i]),Yy(b));
+    ctx.lineTo(X(ds[i+1]),Yy(b2)); ctx.lineTo(X(ds[i+1]),Yy(a2)); ctx.closePath(); ctx.fill();
+  }
+  // ceiling line (QKD secure) — colored by protocol
+  const qcol=S.proto==='tf'?'#e0a05a':'#e05a5a';
+  ctx.strokeStyle=qcol; ctx.lineWidth=2; ctx.beginPath(); let started=false;
+  for(let i=0;i<ds.length;i++){ if(ps[i]==null){started=false;continue;}
+    const px=X(ds[i]),py=Yy(ps[i]); if(!started){ctx.moveTo(px,py);started=true;}else ctx.lineTo(px,py);} ctx.stroke();
+  // classical floor line
+  ctx.strokeStyle='#8fa3c0'; ctx.lineWidth=2; ctx.beginPath(); started=false;
+  for(let i=0;i<ds.length;i++){ if(pc[i]==null){started=false;continue;}
+    const px=X(ds[i]),py=Yy(pc[i]); if(!started){ctx.moveTo(px,py);started=true;}else ctx.lineTo(px,py);} ctx.stroke();
+  // axes
+  ctx.strokeStyle='#2a3850'; ctx.lineWidth=1; ctx.fillStyle='#93a4bd'; ctx.font='11px sans-serif';
+  ctx.textAlign='center';
+  for(let d=20;d<=120;d+=20){ ctx.beginPath();ctx.moveTo(X(d),mT);ctx.lineTo(X(d),Hh-mB);ctx.stroke();
+    ctx.fillText(d,X(d),Hh-mB+15); }
+  ctx.textAlign='right';
+  for(let p=0;p>=-30;p-=10){ ctx.beginPath();ctx.moveTo(mL,Yy(p));ctx.lineTo(W-mR,Yy(p));ctx.strokeStyle='#1d2740';ctx.stroke();
+    ctx.fillStyle='#93a4bd';ctx.fillText(p,mL-6,Yy(p)+4); }
+  ctx.textAlign='center'; ctx.fillStyle='#c7d3e6';
+  ctx.fillText('distance (km)',(mL+W-mR)/2,Hh-6);
+  ctx.save();ctx.translate(14,(mT+Hh-mB)/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText('launch power (dBm/ch)',0,0);ctx.restore();
+  // operating point
+  const px=X(S.dist),py=Yy(S.pwr);
+  ctx.beginPath();ctx.arc(px,py,7,0,7); ctx.fillStyle=R.feasible?'#ffd24a':'#ffffff';
+  ctx.strokeStyle='#0e1420';ctx.lineWidth=2;ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.arc(px,py,7,0,7);ctx.strokeStyle=R.feasible?'#43c59e':'#e05a5a';ctx.lineWidth=2;ctx.stroke();
+}
+
+// click-to-move on the map
+$('map').addEventListener('click',e=>{
+  const cv=$('map'),r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height;
+  const mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sy, mL=52,mR=16,mT=14,mB=38;
+  const d=15+(mx-mL)/(cv.width-mL-mR)*(120-15);
+  const p=4-(my-mT)/(cv.height-mT-mB)*(4-(-30));
+  if(d>=15&&d<=120){ S.dist=Math.round(Math.min(120,Math.max(5,d))); $('dist').value=S.dist;$('dv').textContent=S.dist; }
+  if(p>=-30&&p<=4){ S.pwr=Math.round(p*2)/2; $('pwr').value=S.pwr;$('pv').textContent=S.pwr; }
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
