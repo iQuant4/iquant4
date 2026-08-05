@@ -67,6 +67,19 @@ from .system_model import (
     SystemPoint,
     system_operating_point,
 )
+from .repeater import (
+    fidelity_to_p,
+    p_to_fidelity,
+    swap_fidelity,
+    chained_fidelity,
+    werner_qber,
+    entanglement_key_fraction,
+    direct_plob_rate,
+    repeater_secret_key_rate,
+    optimal_segment_count,
+    repeater_advantage_distance,
+    RepeaterLink,
+)
 
 __all__ = [
     "binary_entropy",
@@ -111,4 +124,15 @@ __all__ = [
     "system_key_rate",
     "SystemPoint",
     "system_operating_point",
+    "fidelity_to_p",
+    "p_to_fidelity",
+    "swap_fidelity",
+    "chained_fidelity",
+    "werner_qber",
+    "entanglement_key_fraction",
+    "direct_plob_rate",
+    "repeater_secret_key_rate",
+    "optimal_segment_count",
+    "repeater_advantage_distance",
+    "RepeaterLink",
 ]
