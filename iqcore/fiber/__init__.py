@@ -67,6 +67,16 @@ from .wss import (
     Lightpath,
     lightpath_penalty_db,
 )
+from .polarization import (
+    mean_dgd_ps,
+    maxwellian_pdf,
+    sample_dgd_maxwellian,
+    random_su2,
+    PMDFiber,
+    pdl_jones,
+    apply_jones,
+    polarization_qber,
+)
 
 __all__ = [
     "FiberSpec",
@@ -103,4 +113,12 @@ __all__ = [
     "RouteResult",
     "Lightpath",
     "lightpath_penalty_db",
+    "mean_dgd_ps",
+    "maxwellian_pdf",
+    "sample_dgd_maxwellian",
+    "random_su2",
+    "PMDFiber",
+    "pdl_jones",
+    "apply_jones",
+    "polarization_qber",
 ]
