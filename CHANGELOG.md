@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.2.0a1 — Coexistence platform
+
+This release turns the alpha into a full optical-and-quantum coexistence engine:
+the classical and quantum branches now share one physical model end to end, every
+model is benchmarked, and the platform ships an interactive explorer and a worked
+case study.
+
+### Added — classical physical layer & DSP
+
+- **WSS / ROADM routing** (`iqcore.fiber.wss`): super-Gaussian passbands, cascade
+  filter-narrowing (`B_eff = B_3dB·(1/k)^(1/2·order)`), the roll-off-dependent
+  narrowing penalty, and add/drop/express on a `WDMComb`.
+- **Polarization / PMD / PDL** (`iqcore.fiber.polarization`): Jones-section PMD
+  emulator with Maxwellian DGD statistics, JME DGD measurement, the `D√L` law,
+  PDL elements, and a PMD → polarization-QBER tie to QKD.
+- **Pulse shaping** (`iq4comm.dsp.pulse_shaping`): RRC/RC/sinc/rect/Gaussian,
+  occupied bandwidth, Nyquist spacing, spectral efficiency, residual ISI.
+- **Forward error correction** (`iq4comm.dsp.fec`): Reed-Solomon decoding
+  waterfall, computed threshold BER, net coding gain, and a catalog of standard
+  optical codes (RS(255,239), KP4, 7% HD, 20% SD).
+- **Signal-quality metrics**: eye diagram + Q-factor (`iq4comm.dsp.eye`) and
+  constellation + EVM/MER (`iq4comm.dsp.constellation`).
+- **Coherent recovery** (`iq4comm.dsp.carrier_recovery`): Viterbi–Viterbi and
+  blind-phase-search carrier recovery, M-th-power frequency-offset estimation,
+  Gardner and Oerder–Meyr timing recovery.
+
+### Added — quantum communications & coexistence
+
+- **Finite-key security** (`iq4comm.qkd.finite_key`) for DV/MDI/TF and CV.
+- **Reach-extension protocols** (`iq4comm.qkd.protocols`): MDI-QKD, Twin-Field
+  QKD, trusted-node relay.
+- **Coexistence engine** (`iq4comm.qkd.coexistence`): spontaneous-Raman
+  background (DV) and excess noise (CV), calibrated to Patel et al. JLT 2014.
+- **Coexistence optimizer & protocol selection** (`iq4comm.qkd.optimize`):
+  constrained launch-power solve and best-protocol-for-a-route.
+- **Format / roll-off / FEC tie-ins** (`iq4comm.qkd.format_impact`,
+  `spectral_design`) folding every classical knob into the QKD channel.
+- **Whole-system model** (`iq4comm.qkd.system_model`): all knobs → both outputs
+  in one call, including the ROADM-loss → QKD coupling.
+- **Entanglement distribution & quantum repeaters** (`iq4comm.qkd.repeater`):
+  Werner-state swapping and a memory-assisted repeater that beats the PLOB bound.
+
+### Added — packaging, validation, experience
+
+- **Validation suite** (`validation/validate.py`) and **VALIDATION.md**: 21/21
+  checks against closed-form limits and published references, with caveats.
+- **Interactive Coexistence Explorer** (`explorer/iquant4_explorer.html`): a
+  self-contained, in-browser lab whose physics matches the Python engine.
+- **Flagship case study** (`examples/case_study_metro_qkd.py`,
+  `docs/case_study_metro_qkd.md`): a QKD overlay on a live 400G metro DWDM link.
+- Refreshed README, project URLs, and PyPI metadata; version bumped to `0.2.0a1`.
+
+### Changed
+
+- Cross-cutting design levers (format, pulse-shaping roll-off, FEC, ROADM count)
+  are backward compatible — a `None`/`0` argument reproduces prior behaviour.
+
 ## 0.1.0a1 — Developer alpha in progress
 
 ### Added
@@ -20,6 +77,7 @@
 - Isolated wheel-install verification outside the source checkout.
 - Windows and Ubuntu continuous-integration workflow across Python 3.10–3.14.
 - Python 3.10-compatible TOML parsing in development tests and verification tools.
+
 ### Release hardening
 
 - Added selectable Apache-2.0 or MIT licensing with PEP 639 metadata.

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "iq4comm"
-version = "0.1.0a1"
-description = "iQuant4 developer alpha for quantum optics and optical/quantum communications"
+version = "0.2.0a1"
+description = "iQuant4 — a unified engine for optical and quantum communications, and their coexistence on one fiber"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
@@ -17,12 +17,17 @@ keywords = [
     "quantum optics",
     "optical communications",
     "quantum communications",
-    "tomography",
     "QKD",
+    "quantum key distribution",
+    "coexistence",
+    "DWDM",
+    "quantum repeater",
+    "tomography",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Telecommunications Industry",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
@@ -31,12 +36,20 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: System :: Networking",
 ]
 dependencies = [
     "numpy>=2.0",
     "scipy>=1.14",
     "matplotlib>=3.8",
 ]
+
+[project.urls]
+Homepage = "https://github.com/iQuant4/iquant4"
+Repository = "https://github.com/iQuant4/iquant4"
+Documentation = "https://github.com/iQuant4/iquant4/tree/main/docs"
+Issues = "https://github.com/iQuant4/iquant4/issues"
+Changelog = "https://github.com/iQuant4/iquant4/blob/main/CHANGELOG.md"
 
 [project.scripts]
 iq4comm = "iq4comm.cli:main"
@@ -63,4 +76,4 @@ release = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["iqcore*", "iq4comm*"]
-exclude = ["archive*", "docs*", "examples*", "tests*", "tools*"]
+exclude = ["archive*", "docs*", "examples*", "tests*", "tools*", "validation*"]
