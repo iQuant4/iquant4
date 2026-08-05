@@ -61,6 +61,12 @@ from .spectral_design import (
     grid_fill_tradeoff,
     best_rolloff_for_key_rate,
 )
+from .system_model import (
+    roadm_insertion_loss_db,
+    system_key_rate,
+    SystemPoint,
+    system_operating_point,
+)
 
 __all__ = [
     "binary_entropy",
@@ -101,4 +107,8 @@ __all__ = [
     "GridFillPoint",
     "grid_fill_tradeoff",
     "best_rolloff_for_key_rate",
+    "roadm_insertion_loss_db",
+    "system_key_rate",
+    "SystemPoint",
+    "system_operating_point",
 ]
