@@ -32,7 +32,13 @@ case study.
 - **Reach-extension protocols** (`iq4comm.qkd.protocols`): MDI-QKD, Twin-Field
   QKD, trusted-node relay.
 - **Coexistence engine** (`iq4comm.qkd.coexistence`): spontaneous-Raman
-  background (DV) and excess noise (CV), calibrated to Patel et al. JLT 2014.
+  background (DV) and excess noise (CV), calibrated to da Silva et al. JLT 2014.
+- **Wavelength-resolved Raman** (`iq4comm.qkd.raman_spectrum`): silica Raman gain
+  profile × Bose–Einstein Stokes/anti-Stokes factor, anchored to the C-band
+  calibration and predicting band-dependent coupling (e.g. O-band ≈32 dB quieter).
+- **Multi-span coexistence** (`iq4comm.qkd.multispan`): amplified classical spans
+  with an un-amplifiable quantum channel (full end-to-end loss + accumulated
+  Raman); reduces exactly to the single-span engine at N=1.
 - **Coexistence optimizer & protocol selection** (`iq4comm.qkd.optimize`):
   constrained launch-power solve and best-protocol-for-a-route.
 - **Format / roll-off / FEC tie-ins** (`iq4comm.qkd.format_impact`,

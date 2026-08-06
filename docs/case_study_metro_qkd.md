@@ -71,7 +71,7 @@ between selling a *claim* and selling a *design*.
 ---
 
 *Assumptions & caveats:* single-fiber co-propagation; Raman coefficient calibrated
-to Patel et al. JLT 2014 (factor-of-a-few uncertainty — recalibrate to the
+to da Silva et al. JLT 2014 (factor-of-a-few uncertainty — recalibrate to the
 operator's hardware for a firm quote); 1 GHz quantum-channel clock assumed for the
 bits/s figures; dual-polarization assumed for the 400G rate. Figure:
 `case_study_hero.png`.

@@ -19,6 +19,7 @@ from iq4comm.dsp import (ber_theory, monte_carlo_ber, q_to_ber, ber_to_q,
                          optimal_launch_power_w, laser_phase_noise)
 from iq4comm.qkd import (bb84_decoy_key_rate, plob_bound_bits,
                          raman_background_yield, RamanModel,
+                         coexistence_dv_key_rate,
                          optimal_segment_count, direct_plob_rate,
                          repeater_advantage_distance)
 
@@ -107,16 +108,43 @@ record("Decoy-BB84 asymptotic reach (km)", reach, 200.0,
        "demonstrated 144-227 km (arXiv:2512.05101, etc.)", tol_pct=40.0,
        note="model reach in the demonstrated band")
 
-# ---- G. Raman coexistence: reproduce Patel et al. JLT 2014 Config G ----
+# ---- G. Raman coexistence: reproduce da Silva et al. JLT 2014 Config G ----
 # 60 km, 14 channels @ -10.5 dBm/ch, 10 GHz (~0.08 nm) filter, 2.5 ns gate,
 # 15% detector efficiency -> ~0.15 Raman counts/gate (co-propagating).
 p_ch = 1e-3 * 10 ** (-10.5 / 10)
-patel = RamanModel(filter_bandwidth_nm=0.08, gate_time_s=2.5e-9)
-counts = raman_background_yield(p_ch * 14, 60.0, raman=patel,
+dasilva = RamanModel(filter_bandwidth_nm=0.08, gate_time_s=2.5e-9)
+counts = raman_background_yield(p_ch * 14, 60.0, raman=dasilva,
                                detector_efficiency=0.15)
-record("Raman counts/gate (Patel Config G)", counts, 0.15,
-       "Patel et al. JLT 2014 / arXiv:1410.0656", tol_pct=40.0,
+record("Raman counts/gate (da Silva Config G)", counts, 0.15,
+       "da Silva et al. JLT 2014 / arXiv:1410.0656", tol_pct=40.0,
        note="calibration anchor")
+
+# ---- G2. Wavelength-resolved Raman: O-band vs in-band C-band ----
+# The silica Raman profile + Bose factor predicts the O-band quantum channel
+# (anti-Stokes, ~35 THz from C-band) is orders of magnitude quieter. Published
+# O-band coexistence noise is 2-3 decades below in-band C-band; the profile
+# prediction must land in that band and reproduce the C-band anchor.
+from iq4comm.qkd.raman_spectrum import band_raman_coefficient, silica_raman_gain
+rho_cband = band_raman_coefficient(1546.12, 1549.0)
+rho_oband = band_raman_coefficient(1310.0, 1550.0)
+record("Resolved Raman: in-band C-band rho (/km/nm)", rho_cband, 2.5e-8,
+       "profile anchored to da Silva Config G", tol_pct=15.0,
+       note="reproduces scalar calibration")
+record("Resolved Raman: O-band suppression (dB)",
+       10 * np.log10(rho_cband / rho_oband), 30.0,
+       "O-band 2-3 decades below C-band (Eraerds NJP 2010)", tol_pct=25.0,
+       note="anti-Stokes thermal suppression; first-order profile prediction")
+record("Silica Raman gain peak offset (THz)",
+       float(np.linspace(1, 40, 4000)[int(np.argmax(
+           [silica_raman_gain(f * 1e12) for f in np.linspace(1, 40, 4000)]))]),
+       13.2, "silica Raman peak (Agrawal)", tol_pct=5.0)
+
+# ---- G3. Multi-span consistency: N=1 reduces to single span ----
+from iq4comm.qkd.multispan import multispan_dv_key_rate
+k_single = coexistence_dv_key_rate(80.0, -15.0, 8)
+k_multi1 = multispan_dv_key_rate(-15.0, 8, 80.0, 1)
+record("Multi-span N=1 equals single span", k_multi1 / k_single, 1.0,
+       "multispan reduces to coexistence engine", tol_pct=0.01, exact=True)
 
 # ---- H. PMD statistics ----
 record("Mean DGD = D sqrt(L) (100 km, 0.1 ps/sqrt-km)", mean_dgd_ps(0.1, 100.0),
@@ -140,6 +168,22 @@ record("Repeater beats PLOB @ 500 km (ratio)",
        note=f"repeater {best500.secret_key_rate:.1e} vs PLOB {direct_plob_rate(500.0):.1e}")
 record("Repeater advantage crossover (km)", repeater_advantage_distance(), 66.0,
        "where repeater overtakes PLOB", tol_pct=None)
+
+# ---- K. Entanglement distribution (BBM92) ----
+from iq4comm.qkd.entanglement import (bbm92_key_rate, coincidence_qber,
+                                      elementary_link_fidelity, PairSource)
+from iq4comm.qkd.repeater import werner_qber
+# BBM92 tolerates up to the ~11% one-way QBER limit; force QBER near it and check
+# the secret fraction is ~0 there. A Werner state with F giving e=0.11 -> ~0 key.
+from iq4comm.qkd.dv import binary_entropy
+e11 = 0.110
+sec_frac_11 = 1.0 - 2.0 * binary_entropy(e11)
+record("BBM92 secret fraction at QBER=11%", sec_frac_11, 0.0,
+       "one-way BB84/BBM92 QBER threshold", tol_pct=None, note="~0 at the 0.11 limit")
+# QBER -> Werner fidelity -> QBER round trip is exact
+F = elementary_link_fidelity(30.0)
+record("BBM92 QBER<->Werner fidelity round trip", werner_qber(F),
+       coincidence_qber(30.0), "Werner e=(1-p)/2 consistency", tol_pct=0.01, exact=True)
 
 
 def main():

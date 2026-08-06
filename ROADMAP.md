@@ -28,7 +28,7 @@ equalizers.
 **Quantum communications (`iq4comm.qkd`).** DV decoy-state BB84 and CV GG02 with
 finite-key security; MDI-QKD, Twin-Field QKD, trusted-node relay, and
 entanglement / quantum-repeater models; the PLOB bound; the spontaneous-Raman
-**coexistence engine** (calibrated to Patel et al. JLT 2014); a coexistence
+**coexistence engine** (calibrated to da Silva et al. JLT 2014); a coexistence
 optimizer and protocol selector; and a whole-system model mapping every design
 knob to both classical capacity and QKD key rate.
 

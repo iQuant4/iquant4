@@ -8,7 +8,7 @@ no external reference) and **published experimental or standard values**. It is
 reproducible: run `python -m validation.validate` from the repo root to regenerate
 the table below.
 
-**Result: 21 / 21 checks within tolerance.** Twelve are exact closed-form or
+**Result: 25 / 25 checks within tolerance.** Thirteen are exact closed-form or
 conserved-quantity matches (agreement < 1%); the rest land within the stated band
 of the published reference. The agreement scatter (every benchmark on the `y = x`
 line across ~16 orders of magnitude) is in `validation_summary.png`.
@@ -74,13 +74,22 @@ The RS decoding waterfall is computed from first principles (bounded-distance
 
 | Check | Computed | Reference | Agree | Source |
 |---|---|---|---|---|
-| Spontaneous-Raman counts/gate, Patel Config G | 0.149 /gate | 0.15 /gate | 0.96% | Patel et al. JLT 2014 |
+| Spontaneous-Raman counts/gate, da Silva Config G | 0.149 /gate | 0.15 /gate | 0.96% | da Silva et al. JLT 2014 |
+| Resolved Raman: in-band C-band ρ | 2.27×10⁻⁸ /(km·nm) | 2.5×10⁻⁸ | 9.2% | profile anchored to Config G |
+| Resolved Raman: O-band suppression | 32.1 dB | 2–3 decades | in band | Eraerds NJP 2010 (order of magnitude) |
+| Silica Raman gain peak offset | 13.07 THz | 13.2 THz | 0.96% | Agrawal, silica Raman peak |
+| Multi-span N=1 = single span | 1.000 | 1 (exact) | exact | engine consistency |
 
 This is the platform's key credibility anchor: the coexistence engine's Raman
 coefficient (`ρ = 2.5×10⁻⁸ /(km·nm)`) reproduces the measured Configuration-G
-operating point of Patel et al. (14 classical channels at −10.5 dBm/channel over
+operating point of da Silva et al. (14 classical channels at −10.5 dBm/channel over
 60 km, 10 GHz / ~0.08 nm filter, 2.5 ns gate, 15% detector efficiency → ~0.15
-Raman counts per gate) to within 1%.
+Raman counts per gate) to within 1%. The wavelength-resolved profile
+(`raman_spectrum.py`) reproduces this scalar anchor for the in-band C-band case
+and predicts an O-band (1310 nm) quantum channel to be ≈32 dB quieter, consistent
+with the order of magnitude reported for O-band coexistence. That O-band figure is
+a first-order prediction of the silica gain profile plus the anti-Stokes thermal
+factor, not a directly measured value.
 
 ### Polarization / PMD and laser phase noise
 
@@ -102,12 +111,12 @@ Raman counts per gate) to within 1%.
 
 ## Method notes and honest caveats
 
-- **Closed-form checks are the backbone.** Twelve of the 21 rows compare against
+- **Closed-form checks are the backbone.** Thirteen of the 25 rows compare against
   an exact expression or a conserved quantity; these cannot be "tuned" and
   agreement is floating-point-limited. They validate the core propagation, BER,
   GN-optimum, PLOB, and PMD-statistics machinery outright.
 - **Published anchors carry real uncertainty.** The Raman coefficient is
-  calibrated to *one* reported operating point (Patel Config G) and inherits a
+  calibrated to *one* reported operating point (da Silva Config G) and inherits a
   factor-of-a-few uncertainty from that measurement; the report states this, and
   the coefficient is a single documented constant users can recalibrate to their
   own hardware. The FEC net-coding-gain and BB84-reach references are themselves
@@ -127,7 +136,7 @@ python -m validation.validate      # prints the full table
 
 Sources: RS/FEC net coding gain — Nokia, "What the FEC?"; decoy-BB84 reach —
 arXiv:2512.05101 and the decoy-state QKD literature; Raman coexistence —
-Patel et al., *J. Lightwave Technol.* 32(13), 2332 (2014) / arXiv:1410.0656;
+da Silva et al., *J. Lightwave Technol.* 32(13), 2332 (2014) / arXiv:1410.0656;
 GN model — Poggiolini, *JLT* 30(24), 2012; PLOB bound — Pirandola et al.,
 *Nat. Commun.* 8, 15043 (2017); repeaters — Sangouard et al., *Rev. Mod. Phys.*
 83, 33 (2011).

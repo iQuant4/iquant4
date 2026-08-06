@@ -95,7 +95,7 @@ branches.
 
 - **DV-QKD** (decoy-state BB84) and **CV-QKD** (GG02 homodyne) with **finite-key** security; the **PLOB** bound.
 - **Reach extension**: MDI-QKD, Twin-Field QKD, trusted-node relay, and **entanglement / quantum repeaters** (breaks the direct-transmission reach limit).
-- **Coexistence engine**: spontaneous-Raman background/excess-noise from co-propagating DWDM, calibrated to Patel et al. JLT 2014.
+- **Coexistence engine**: spontaneous-Raman background/excess-noise from co-propagating DWDM, calibrated to da Silva et al. JLT 2014.
 - **Whole-system model** + optimizer: every knob (distance, loading, launch, format, roll-off, FEC, ROADM count) → both outputs, and the best launch power / protocol for a route.
 
 ## Validated, not asserted
@@ -110,7 +110,7 @@ python -m validation.validate      # 21/21 checks pass
 Highlights: fiber loss / BER / Q-factor / PLOB / PMD statistics match closed form
 to < 1%; RS(255,239) net coding gain 6.06 dB vs published 6.2 dB; decoy-BB84
 reach 206 km inside the demonstrated 144–227 km band; and the coexistence Raman
-model reproduces Patel et al.'s measured operating point to **0.96%**. Full
+model reproduces da Silva et al.'s measured operating point to **0.96%**. Full
 report with references and honest caveats: **[VALIDATION.md](VALIDATION.md)**.
 
 ## Command line & diagnostics
