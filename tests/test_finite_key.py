@@ -1,4 +1,4 @@
-"""Validation of the finite-key security model."""
+"""Regression tests for the finite-key sensitivity estimate."""
 
 from __future__ import annotations
 

@@ -36,6 +36,7 @@
     display:flex;align-items:center;gap:10px}
   .verdict.ok{background:rgba(67,197,158,.14);color:var(--good);border:1px solid rgba(67,197,158,.4)}
   .verdict.no{background:rgba(224,90,90,.13);color:var(--bad);border:1px solid rgba(224,90,90,.4)}
+  .verdict.warn{background:rgba(255,210,74,.12);color:#ffd24a;border:1px solid rgba(255,210,74,.42)}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .stat{background:var(--panel2);border:1px solid var(--edge);border-radius:10px;padding:11px 13px}
   .stat .k{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
@@ -101,8 +102,9 @@
       <label>QKD protocol</label>
       <div class="seg" id="protoSeg">
         <button data-v="dv" class="on">DV-BB84</button>
-        <button data-v="tf">Twin-Field</button>
+        <button data-v="tf">TF proxy*</button>
       </div>
+      <div id="protoNote" class="hint">DV-BB84 is recommendation-eligible. *Twin-Field is an exploratory scaling proxy and never produces an engineering verdict.</div>
     </div>
     <div class="hint">
       The quantum signal can't be amplified, so every ROADM is pure loss on the key rate,
@@ -133,127 +135,89 @@
         <span class="legdot" style="background:rgba(90,169,230,.55)"></span>coexistence window &nbsp;
         <span class="legdot" style="background:#e05a5a"></span>QKD dies (Raman) &nbsp;
         <span class="legdot" style="background:#ffd24a"></span>your operating point
-        &nbsp;— the window pinches shut with distance; try Twin-Field to extend it.
+        &nbsp;— the TF curve is available only as a labelled scaling exploration.
       </div>
     </div>
   </div>
 </div>
-<div class="foot">iQuant4 — physics computed live in your browser (GN model · decoy BB84 / Twin-Field · calibrated spontaneous-Raman coexistence · cascaded-WSS narrowing). Illustrative engineering model.</div>
+<div class="foot">iQuant4 developer alpha — browser/Python contract model (GN · decoy BB84 · calibrated Raman · cascaded WSS). TF is a non-recommendation scaling proxy. Assumptions and hardware calibration still matter.</div>
 
+<script src="physics_contract.js"></script>
 <script>
 "use strict";
-// ---------- math helpers ----------
-const LN2=Math.log(2), LN10=Math.log(10);
-const log2=x=>Math.log(x)/LN2, log10=x=>Math.log(x)/LN10;
-const asinh=x=>Math.log(x+Math.sqrt(x*x+1));
-function erfc(x){ // Abramowitz-Stegun 7.1.26, ~1e-7
-  const z=Math.abs(x), t=1/(1+0.3275911*z);
-  const y=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))));
-  const r=y*Math.exp(-z*z);
-  return x>=0?r:2-r;
-}
-const Q=x=>0.5*erfc(x/Math.SQRT2);
-function H2(x){ if(x<=0||x>=1)return 0; return -x*log2(x)-(1-x)*log2(1-x); }
+const log10=x=>Math.log(x)/Math.log(10);
+const RS=IQ4Physics.DEFAULTS.symbolRateBaud;
 
-// ---------- constants (SMF-28) ----------
-const ALPHA_DB=0.2, ALPHA_NEP=ALPHA_DB*LN10/10, GAMMA=1.3, BETA2=21.68;
-const RS=32e9, H=6.62607015e-34, C=2.99792458e8, HV=H*C/1550e-9;
-const NF_DB=5, NFlin=Math.pow(10,NF_DB/10);
-const DET_EFF=0.5, DARK=1e-6, ED=0.02, FEC_EFF=1.16, MU=0.5, SIFT=0.5;
-const RAMAN_RHO=2.5e-8, FILT_NM=0.01, GATE=1e-10;
-const WSS_B3DB=50, WSS_ORDER=3, WSS_IL=3.0;   // GHz, -, dB per stage
+function contractOptions(S, overrides={}){
+  return {
+    distanceKm:S.dist,
+    launchDbmPerChannel:S.pwr,
+    channelCount:S.nch,
+    rolloff:S.beta,
+    nRoadms:S.roadm,
+    format:S.fmt,
+    fec:S.fec,
+    protocol:S.proto,
+    ...overrides,
+  };
+}
 
-const FMT={OOK:{k:1,M:2,t:'ook'},QPSK:{k:2,M:4,t:'psk'},'16QAM':{k:4,M:16,t:'qam'},'64QAM':{k:6,M:64,t:'qam'}};
-const FEC={ 'none':{thr:3.8e-3,rate:1.0}, 'RS(255,239)':{thr:6.54e-5,rate:0.937},
-  'KP4':{thr:1.94e-4,rate:0.945}, 'HD-FEC-7%':{thr:3.8e-3,rate:0.930}, 'SD-FEC-20%':{thr:2.0e-2,rate:0.833} };
-
-const trans=L=>Math.pow(10,-ALPHA_DB*L/10);
-const leff=L=>(1-Math.exp(-ALPHA_NEP*L))/ALPHA_NEP;
-
-// ---------- classical: GN SNR + BER ----------
-function berTheory(fmt,ebn0db){
-  const f=FMT[fmt], ebn0=Math.pow(10,ebn0db/10);
-  if(f.t==='ook') return Q(Math.sqrt(ebn0));
-  if(f.t==='psk') return Q(Math.sqrt(2*ebn0));
-  const co=(4/f.k)*(1-1/Math.sqrt(f.M));
-  return co*Q(Math.sqrt(3*f.k/(f.M-1)*ebn0));
-}
-function snrDb(launchDbm,nch,d,spacingHz){
-  const g=Math.pow(10,(ALPHA_DB*d)/10);
-  const nsp = g>1 ? NFlin*g/(2*(g-1)) : NFlin/2;
-  const ase = nsp*HV*(g-1)*RS;                       // 1 pol, bandwidth Rs
-  const Le=leff(d), LeA=1/ALPHA_NEP;
-  const bw=(nch*spacingHz)/1e12, rs=RS/1e12;
-  const arg=(Math.PI*Math.PI/2)*BETA2*LeA*bw*bw;
-  const eta=((8/27)*GAMMA*GAMMA*Le*Le*asinh(arg))/(Math.PI*BETA2*LeA*rs*rs);
-  const pch=1e-3*Math.pow(10,launchDbm/10);
-  const snr=pch/(ase+eta*pch*pch*pch);
-  return 10*log10(snr);
-}
-// ---------- WSS/ROADM ----------
-function narrowingDb(nRoadm,occHz){
-  if(nRoadm<=0) return 0;
-  const k=nRoadm+1, B=WSS_B3DB*1e9, half=occHz/2, N=161; let s=0;
-  for(let i=0;i<N;i++){ const df=-half+2*half*i/(N-1);
-    const x=2*Math.abs(df)/B; const T=Math.exp(-LN2*Math.pow(x,2*WSS_ORDER)); s+=Math.pow(T,k);}
-  const passed=s/N; return passed<=0?99:-10*log10(passed);
-}
-function roadmLossDb(n){ if(n<=0)return 0; const ex=Math.max(0,n-2); return (2*ex+2)*WSS_IL; }
-
-// ---------- QKD ----------
-function bb84(eta,bg){
-  const es=eta*DET_EFF; let y0=2*DARK+bg; if(y0>1)y0=1;
-  const qmu=y0+1-Math.exp(-es*MU); if(qmu<=0)return 0;
-  const emu=(0.5*y0+ED*(1-Math.exp(-es*MU)))/qmu;
-  const y1=y0+es-y0*es; const q1=MU*Math.exp(-MU)*y1;
-  const e1=y1>0?(0.5*y0+ED*es)/y1:0.5;
-  return Math.max(SIFT*(q1*(1-H2(e1))-qmu*FEC_EFF*H2(emu)),0);
-}
-function tf(eta,bg){
-  const teff=0.25*DET_EFF*Math.sqrt(eta); let y0=2*DARK+bg;
-  const gain=y0+teff; const ed=ED+0.02;
-  const err=gain>0?(0.5*y0+ed*teff)/gain:0.5;
-  return Math.max(SIFT*gain*(1-(1+FEC_EFF)*H2(err)),0);
-}
 function ramanBg(launchDbm,nch,d){
-  const ptot=1e-3*Math.pow(10,launchDbm/10)*nch;
-  const praman=ptot*RAMAN_RHO*FILT_NM*leff(d);
-  return (praman/HV)*GATE*DET_EFF;
-}
-function qkdRate(proto,launchDbm,nch,d,nRoadm){
-  const eta=trans(d)*Math.pow(10,-roadmLossDb(nRoadm)/10);
-  const bg=ramanBg(launchDbm,nch,d);
-  return proto==='tf'?tf(eta,bg):bb84(eta,bg);
+  return IQ4Physics.ramanBackgroundYield({
+    classicalTotalPowerW:1e-3*Math.pow(10,launchDbm/10)*nch,
+    distanceKm:d,
+  });
 }
 
-// ---------- full operating point ----------
-function evaluate(S){
-  const spacing=RS*(1+S.beta), occ=RS*(1+S.beta);
-  const narrow=narrowingDb(S.roadm,occ);
-  const snr=snrDb(S.pwr,S.nch,S.dist,spacing)-narrow;
-  const f=FMT[S.fmt];
-  const ber=berTheory(S.fmt,snr-10*log10(f.k));
-  const fec=FEC[S.fec];
-  const closes=ber<=fec.thr;
-  const cap=closes ? S.nch*RS*f.k*fec.rate : 0;
-  const skr=qkdRate(S.proto,S.pwr,S.nch,S.dist,S.roadm);
-  const totDbm=S.pwr+10*log10(S.nch);
-  return {ber,closes,cap,skr,totDbm,raman:ramanBg(S.pwr,S.nch,S.dist),
-          feasible:closes&&skr>1e-6};
+function qkdRate(proto,launchDbm,nch,d,nRoadm){
+  return IQ4Physics.systemKeyRate({
+    protocol,
+    launchDbmPerChannel:launchDbm,
+    channelCount:nch,
+    distanceKm:d,
+    nRoadms:nRoadm,
+  });
 }
-// window boundaries for current settings/protocol
+
+function evaluate(S){
+  const point=IQ4Physics.systemOperatingPoint(contractOptions(S));
+  const totDbm=S.pwr+10*log10(S.nch);
+  const jointCondition=point.closes&&point.keyRate>1e-6;
+  return {
+    ber:point.ber,
+    closes:point.closes,
+    cap:point.capacityBps,
+    skr:point.keyRate,
+    totDbm,
+    raman:ramanBg(S.pwr,S.nch,S.dist),
+    jointCondition,
+    feasible:jointCondition&&point.recommendationEligible,
+    recommendationEligible:point.recommendationEligible,
+    modelStatus:point.modelStatus,
+  };
+}
+
+// Window boundaries for the current settings/protocol.
 function windowCurves(S){
   const ds=[],pc=[],ps=[]; const THR=1e-6;
+  const occupied=RS*(1+S.beta);
+  const stages=IQ4Physics.roadmFilterStages(S.roadm);
+  const narrow=stages>0?IQ4Physics.wssNarrowingPenaltyDb(stages,occupied):0;
+  const fmt=IQ4Physics.FORMATS[S.fmt],fec=IQ4Physics.FEC_CODES[S.fec];
   for(let d=15;d<=120;d+=2){
-    const spacing=RS*(1+S.beta), occ=RS*(1+S.beta), narrow=narrowingDb(S.roadm,occ);
-    const f=FMT[S.fmt], fec=FEC[S.fec];
-    let close=null, sec=null;
+    let close=null,sec=null;
     for(let p=-30;p<=4;p+=0.5){
-      const snr=snrDb(p,S.nch,d,spacing)-narrow;
-      if(close===null && berTheory(S.fmt,snr-10*log10(f.k))<=fec.thr) close=p;
-      if(qkdRate(S.proto,p,S.nch,d,S.roadm)>THR) sec=p; // max p with qkd alive
+      const snr=IQ4Physics.channelSnrDb({
+        launchDbmPerChannel:p-narrow,
+        channelCount:S.nch,
+        distanceKm:d,
+        channelSpacingHz:occupied,
+      });
+      const ber=IQ4Physics.berTheory(S.fmt,snr-10*log10(fmt.bitsPerSymbol));
+      if(close===null&&ber<=fec.thresholdBer)close=p;
+      if(qkdRate(S.proto,p,S.nch,d,S.roadm)>THR)sec=p;
     }
-    ds.push(d); pc.push(close); ps.push(sec);
+    ds.push(d);pc.push(close);ps.push(sec);
   }
   return {ds,pc,ps};
 }
@@ -283,9 +247,18 @@ function render(){
   $('stTot').innerHTML=R.totDbm.toFixed(1)+' <span class="u">dBm</span>';
   $('stRaman').innerHTML=R.raman.toExponential(1)+' <span class="u">/gate</span>';
   const v=$('verdict');
-  if(R.feasible){v.className='verdict ok';v.textContent='✓ coexistence feasible — classical link closes and QKD stays secure';}
+  if(!R.recommendationEligible){
+    v.className='verdict warn';
+    v.textContent='Exploratory only — Twin-Field is a scaling proxy; no engineering feasibility verdict is issued';
+    $('protoNote').textContent='Twin-Field result: scaling_proxy · excluded from automatic recommendations.';
+  }
+  else if(R.feasible){v.className='verdict ok';v.textContent='✓ coexistence feasible — classical link closes and DV-QKD stays secure';
+    $('protoNote').textContent='DV-BB84 result: research_model · eligible for this developer-alpha feasibility check.';}
   else if(!R.closes){v.className='verdict no';v.textContent='✗ classical link fails to close — raise launch power, lower format, or use stronger FEC';}
-  else {v.className='verdict no';v.textContent='✗ QKD extinguished — Raman/loss too high; lower launch power, fewer channels/ROADMs, or Twin-Field';}
+  else {v.className='verdict no';v.textContent='✗ DV-QKD extinguished — Raman/loss too high; lower launch power or reduce channels/ROADMs';}
+  if(R.recommendationEligible&&!R.feasible){
+    $('protoNote').textContent='DV-BB84 result: research_model · eligible for this developer-alpha feasibility check.';
+  }
   drawMap(R);
 }
 

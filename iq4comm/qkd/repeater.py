@@ -32,10 +32,11 @@ References: Briegel et al., PRL 81, 5932 (1998); Sangouard et al., RMP 83, 33
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from iqcore.fiber import FiberSpec, SMF28
 from .dv import binary_entropy, plob_bound_bits
+from .model_status import REPEATER_MODEL, ModelStatus
 
 __all__ = [
     "fidelity_to_p",
@@ -49,6 +50,7 @@ __all__ = [
     "optimal_segment_count",
     "repeater_advantage_distance",
     "RepeaterLink",
+    "REPEATER_MODEL",
 ]
 
 
@@ -92,13 +94,15 @@ def direct_plob_rate(distance_km: float, *, fiber: FiberSpec = SMF28) -> float:
 
 @dataclass(frozen=True)
 class RepeaterLink:
-    """Result of a repeater evaluation at one segment count."""
+    """Result of a ``scaling_proxy`` repeater evaluation."""
 
     distance_km: float
     n_segments: int
     end_to_end_fidelity: float
     secret_key_rate: float
     beats_plob: bool
+    model_status: ModelStatus = field(
+        default=ModelStatus.SCALING_PROXY, init=False)
 
 
 def repeater_secret_key_rate(distance_km: float, n_segments: int, *,
@@ -106,7 +110,7 @@ def repeater_secret_key_rate(distance_km: float, n_segments: int, *,
                              segment_fidelity: float = 0.98,
                              swap_success: float = 0.5,
                              source_efficiency: float = 1.0) -> float:
-    """Memory-assisted repeater secret-key rate (relative bits/use).
+    """Memory-assisted repeater *scaling-proxy* rate (relative bits/use).
 
     With quantum memories each of the ``n_segments`` is heralded independently, so
     the end-to-end rate is limited by *one* segment's transmissivity
@@ -115,7 +119,9 @@ def repeater_secret_key_rate(distance_km: float, n_segments: int, *,
 
         R ≈ source_eff · η(L/n) · swap_success^(n−1) · [1 − 2 H2(e_end)].
 
-    ``n_segments = 1`` reduces to a direct entangled link (no swap).
+    ``n_segments = 1`` reduces to a direct entangled link (no swap).  Memory
+    waiting-time statistics, multiplexing, purification, decoherence, heralding
+    latency, and hardware scheduling are not included.
     """
     if n_segments < 1:
         raise ValueError("n_segments must be >= 1")
@@ -130,10 +136,11 @@ def optimal_segment_count(distance_km: float, *, fiber: FiberSpec = SMF28,
                           swap_success: float = 0.5,
                           source_efficiency: float = 1.0,
                           max_segments: int = 64) -> RepeaterLink:
-    """Segment count maximising the repeater rate at a distance.
+    """Segment count maximising the repeater scaling proxy at a distance.
 
     Scans ``n`` and returns the best :class:`RepeaterLink`; the optimum grows with
-    distance (more segments shorten each hop) until fidelity decay caps it.
+    distance (more segments shorten each hop) until fidelity decay caps it.  The
+    returned optimum is exploratory and not an engineering recommendation.
     """
     best = None
     for n in range(1, max_segments + 1):

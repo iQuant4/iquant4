@@ -56,7 +56,7 @@ on the launch power you chose above:
 from iq4comm.qkd import protocol_coexistence_key_rate
 
 skr = protocol_coexistence_key_rate("dv", 60, -18, 40)   # DV-BB84, -18 dBm/ch
-print(skr, "bits/pulse")                                 # 7.55e-04
+print(skr, "bits/pulse")                                 # 2.81e-03
 ```
 
 Lower launch → less Raman → more key. That tension is the whole design problem.
@@ -72,7 +72,7 @@ from iq4comm.qkd import optimize_launch_power
 
 op = optimize_launch_power(60, 40, 1e-6, protocol="dv")   # need >= 1e-6 bits/pulse
 print(op.feasible, op.launch_dbm, op.qkd_constraint_binds)
-# True  -16.4  True   -> feasible; QKD security sets the launch power
+# True  -4.73  False  -> feasible; the GN optimum binds before the QKD floor
 ```
 
 And `select_best_protocol` picks the best QKD protocol for the route:
@@ -82,11 +82,13 @@ from iq4comm.qkd import select_best_protocol
 
 best, rate, rates = select_best_protocol(60, 40, -18)
 print(best, rates)
-# cv {'dv': 0.0008, 'cv': 0.0062, 'mdi': 0.0004, 'tf': 0.0051}
+# cv {'dv': 0.00281, 'cv': 0.01298}
 ```
 
-Here **CV-QKD** wins — and it reuses the same coherent receiver as the classical
-channels, which is why it is attractive for a coherent metro network.
+Only recommendation-eligible DV/CV research models participate automatically.
+To report the MDI/TF scaling proxies without allowing them to win, pass
+`include_scaling_proxies=True`; the returned dictionary then includes their
+labelled exploratory values.
 
 ## 5. Check the reach
 
@@ -95,9 +97,14 @@ How far does the overlay scale before it needs a trusted node or a repeater?
 ```python
 from iq4comm.qkd import coexistence_reach
 
-reach_km = coexistence_reach(40, 1e-6, 1e12, protocol="tf")   # Twin-Field
-print(reach_km, "km")                                          # 155.0
+reach_km = coexistence_reach(
+    40, 1e-6, 1e12, protocol="dv", max_distance_km=400)
+print(reach_km, "km")                                          # ~200.5
 ```
+
+MDI/TF reach calls require `allow_scaling_proxy=True` and remain ineligible for
+engineering recommendations. The generic finite-size option is a sensitivity
+estimate, not a protocol-specific composable-security proof.
 
 ## 6. Everything at once
 
@@ -114,12 +121,14 @@ op = system_operating_point(
     fec=get_fec_code("SD-FEC-20%"), n_roadms=0, qkd_protocol="dv")
 
 print(op.classical_closes, op.capacity_tbps, op.secret_key_rate)
+# True 4.266666666666667 0.002815...
 ```
 
 ## Where to go next
 
 - **Interactive:** open [`explorer/iquant4_explorer.html`](../explorer/iquant4_explorer.html)
-  and drag the knobs — it runs the same physics in the browser.
+  and drag the knobs. Its JavaScript contract mirrors the canonical Python
+  operating-point calculations and is checked against them in the test suite.
 - **The full story:** [`docs/case_study_metro_qkd.md`](case_study_metro_qkd.md)
   designs a QKD overlay on a live 400G metro link end to end.
 - **Trust the numbers:** [`VALIDATION.md`](../VALIDATION.md) benchmarks every model.

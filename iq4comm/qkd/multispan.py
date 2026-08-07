@@ -15,12 +15,13 @@ while every span injects fresh spontaneous-Raman noise into the quantum band.
 Two consequences, both captured here:
 
 * Quantum-signal transmissivity falls as ``eta_span ** N`` (full end-to-end loss).
-* Raman noise generated in span ``k`` still has to cross the remaining ``N-k``
-  un-amplified spans to reach the receiver, so the accumulated background is
-  ``sum_{k=1..N} eta_span ** (N-k)`` times a single span's generation.  This sum
-  saturates while the signal keeps shrinking -- so the Raman-to-signal ratio
-  grows sharply with span count, which is what limits QKD reach on amplified
-  links.
+* Raman noise generated in span ``k`` uses the full unequal-loss longitudinal
+  integral inside that span: C-band pump loss before scattering and O-band
+  quantum loss after scattering are not interchangeable.
+* The photon then crosses the remaining ``N-k`` un-amplified spans, so the
+  accumulated background is ``sum_{k=1..N} eta_q**(N-k)`` times the corrected
+  single-span generation.  The geometric sum uses the *quantum-wavelength*
+  transmissivity ``eta_q``.
 
 The classical side reuses the validated GN + ASE model with ``n_spans``.
 """
@@ -31,7 +32,12 @@ import numpy as np
 
 from iqcore.fiber import Amplifier, FiberSpec, SMF28
 from iq4comm.dsp.gn_model import nli_coefficient, ase_power_w, effective_snr
-from .coexistence import RamanModel, _PLANCK_J_S, _C_M_PER_S
+from .coexistence import (
+    RamanModel,
+    raman_received_power_w,
+    _PLANCK_J_S,
+    _C_M_PER_S,
+)
 from .dv import DetectorModel, bb84_decoy_key_rate
 from .cv import CVDetector, cvqkd_homodyne_key_rate
 
@@ -62,7 +68,13 @@ def multispan_classical_capacity_bps(launch_dbm_per_channel: float, n_channels: 
 
 def _span_accumulation_factor(fiber: FiberSpec, span_length_km: float,
                               n_spans: int) -> float:
-    """``sum_{k=1..N} eta_span**(N-k)`` -- Raman accumulated across un-amplified spans."""
+    """Post-generation accumulation using quantum-wavelength span loss.
+
+    Returns ``sum_{k=1..N} eta_q**(N-k)``.  ``fiber`` must therefore describe
+    the quantum path rather than the amplified classical pump.
+    """
+    if n_spans < 1:
+        raise ValueError("n_spans must be at least 1")
     eta_span = fiber.transmissivity(span_length_km)
     return float(sum(eta_span ** (n_spans - k) for k in range(1, n_spans + 1)))
 
@@ -74,16 +86,17 @@ def multispan_raman_background_yield(launch_dbm_per_channel: float, n_channels: 
                                      detector_efficiency: float = 0.5) -> float:
     """DV detector background yield (per gate) accumulated over ``n_spans`` spans.
 
-    Each span injects the same single-span Raman generation (classical power is
-    restored to launch by the inline amp); the contribution from span ``k`` is
-    attenuated by the remaining ``N-k`` un-amplified spans before the receiver.
+    Each span injects the same single-span Raman generation because classical
+    power is restored to launch by the inline amplifier.  Inside a span,
+    :func:`~iq4comm.qkd.coexistence.raman_received_power_w` applies the selected
+    co/counter direction and distinct pump/quantum attenuation.  The result is
+    then attenuated through the remaining quantum spans.
     """
     raman = raman or RamanModel()
     p_ch_w = 1e-3 * 10.0 ** (launch_dbm_per_channel / 10.0)
     p_total = p_ch_w * n_channels
-    l_eff = fiber.effective_length_km(span_length_km)
-    p_raman_span = (p_total * raman.raman_coeff_per_km_per_nm
-                    * raman.filter_bandwidth_nm * l_eff)
+    p_raman_span = raman_received_power_w(
+        p_total, span_length_km, fiber=fiber, raman=raman)
     accum = _span_accumulation_factor(fiber, span_length_km, n_spans)
     nu = _C_M_PER_S / (raman.quantum_wavelength_nm * 1e-9)
     photon_energy = _PLANCK_J_S * nu
@@ -99,9 +112,8 @@ def multispan_raman_photon_occupation(launch_dbm_per_channel: float, n_channels:
     raman = raman or RamanModel()
     p_ch_w = 1e-3 * 10.0 ** (launch_dbm_per_channel / 10.0)
     p_total = p_ch_w * n_channels
-    l_eff = fiber.effective_length_km(span_length_km)
-    p_raman_span = (p_total * raman.raman_coeff_per_km_per_nm
-                    * raman.filter_bandwidth_nm * l_eff)
+    p_raman_span = raman_received_power_w(
+        p_total, span_length_km, fiber=fiber, raman=raman)
     accum = _span_accumulation_factor(fiber, span_length_km, n_spans)
     lam_m = raman.quantum_wavelength_nm * 1e-9
     photon_energy = _PLANCK_J_S * (_C_M_PER_S / lam_m)

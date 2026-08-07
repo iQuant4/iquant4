@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.2.0a2 — Scientific and release hardening
+
+This release corrects the coexistence distance law, narrows engineering claims,
+and synchronizes the Python package, browser explorer, evidence, documentation,
+and distributions around one model contract.
+
+### Corrected
+
+- Replaced the nonlinear-effective-length Raman approximation with the physical
+  co-propagating and counter-propagating longitudinal integrals, including
+  unequal pump/quantum attenuation and numerically stable equal-loss limits.
+- Corrected multi-span Raman accumulation and mixed-band pump/quantum loss.
+- Replaced a mistaken reading of the `x10^-4` axis in Ferreira da Silva et al.
+  Fig. 4 with a traceable 12-point digitized dataset and frozen reproduction
+  tests. The default coefficient is now explicitly receiver-effective.
+
+### Guardrails
+
+- Classified TF-QKD, MDI-QKD, trusted-node, and repeater calculations as
+  `scaling_proxy`; classified the generic finite-size correction as
+  `sensitivity_estimate`.
+- Excluded scaling proxies from automatic protocol selection and required an
+  explicit opt-in in high-level workflows.
+- Added an evidence ledger that distinguishes analytical verification,
+  literature reproduction, reference-band checks, software regressions, and
+  proxy sanity checks. No independent hardware validation is claimed.
+
+### Synchronized
+
+- Added a browser/Python physics contract with parity tests for Raman, GN SNR,
+  WSS narrowing, ROADM loss, QKD rates, and complete operating points.
+- Regenerated the metro case study, validation narrative, website explorer,
+  wheel, and source distribution from the hardened source tree.
+
 ## 0.2.0a1 — Coexistence platform
 
 This release turns the alpha into a full optical-and-quantum coexistence engine:

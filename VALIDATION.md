@@ -1,142 +1,157 @@
-# iQuant4 — Validation Report
+# iQuant4 Evidence and Validation Report
 
-*How do we know the numbers are right?* Every headline claim this platform makes
-— reach, capacity, secret-key rate, the coexistence window — rests on the physics
-models in `iqcore` and `iq4comm`. This report benchmarks those models against two
-kinds of ground truth: **closed-form / conserved-quantity limits** (exact, needing
-no external reference) and **published experimental or standard values**. It is
-reproducible: run `python -m validation.validate` from the repo root to regenerate
-the table below.
+iQuant4 `0.2.0a2` reports evidence by class. A passing unit regression, an
+analytical identity, a broad literature range, and reproduction of published
+experimental data are useful for different reasons and are not combined into
+one claim of “scientific validation.”
 
-**Result: 25 / 25 checks within tolerance.** Thirteen are exact closed-form or
-conserved-quantity matches (agreement < 1%); the rest land within the stated band
-of the published reference. The agreement scatter (every benchmark on the `y = x`
-line across ~16 orders of magnitude) is in `validation_summary.png`.
+Run the evidence ledger with:
 
----
+```bash
+python -m validation.validate
+```
 
-## How to read this
+Current result: **27/27 automated checks are within their explicit tolerance.**
+This means the checks pass; it does not mean every model is experimentally
+validated.
 
-Each row lists the platform-computed value, the reference it is checked against,
-the relative agreement, and the source. Rows marked **exact** compare against a
-closed-form expression or a conserved quantity (energy, a statistical law), so
-agreement is limited only by floating point / Monte-Carlo sample size. Rows
-marked **published** compare against a measured or standardised value and carry
-that reference's own uncertainty — for those the test asserts the platform lands
-in the right band, not that it reproduces a single number to many digits.
+## Evidence ledger
 
----
+| Evidence class | Checks | What it establishes |
+|---|---:|---|
+| Analytical verification | 11 | Agreement with a closed form, conserved quantity, or directly derived mathematical limit |
+| Literature reproduction | 1 | A locked published-experiment operating point is reproduced within the declared digitization tolerance |
+| Reference band | 11 | A reduced model lands within a published, textbook, standard, or typical range |
+| Software regression | 2 | Two implementations or reductions remain internally consistent |
+| Scaling-proxy sanity | 2 | A deliberately reduced proxy preserves its intended qualitative scaling |
+| Independent hardware validation | **0** | No independent iQuant4 laboratory or field dataset has yet been supplied |
 
-## Results
+The test suite additionally checks the full 12-point Raman literature series and
+browser/Python parity. Those tests are intentionally not counted as 12 more
+independent experiments.
 
-### Fiber propagation (exact)
+## Raman coexistence correction
 
-| Check | Computed | Reference | Agree | Source |
-|---|---|---|---|---|
-| Pure-loss ratio over 80 km | 0.02512 | `10^(-αL/10)` = 0.02512 | 0.00% | closed form |
-| SMF-28 β₂ | −21.68 ps²/km | −21.7 ps²/km | 0.08% | textbook (D=17 ps/nm/km @1550) |
-| Loss over 80 km | 16.0 dB | 16.0 dB | 0.00% | 0.2 dB/km × 80 km |
+For launched pump power (P_0), local effective coefficient ρ, receiver
+bandwidth (B), span (L), pump loss (α_p), and quantum-path loss (α_q),
+the receiver-side Raman power uses the longitudinal path integral.
 
-The split-step NLSE propagator was separately validated (see PLATFORM_ROADMAP §5)
-against dispersive-broadening `√(1+(L/L_D)²)`, SPM peak phase `γP₀L_eff`, and
-fundamental-soliton shape invariance (correlation 1.00000).
+For co-propagation:
 
-### Classical DSP — BER, Q-factor, GN model
+\[
+I_{\mathrm{co}}(L)=
+\frac{e^{-\alpha_qL}-e^{-\alpha_pL}}{\alpha_p-\alpha_q},
+\qquad
+I_{\mathrm{co}}(L)\xrightarrow{\alpha_p=\alpha_q}
+Le^{-\alpha L}.
+\]
 
-| Check | Computed | Reference | Agree | Source |
-|---|---|---|---|---|
-| QPSK BER @ 8 dB (Monte-Carlo vs theory) | 1.90×10⁻⁴ | 1.91×10⁻⁴ | 0.34% | MC agreement |
-| QPSK Eb/N0 for BER 1e-3 | 6.79 dB | 6.79 dB | 0.01% | closed-form Q⁻¹ |
-| Q = 6 → BER | 9.87×10⁻¹⁰ | 9.87×10⁻¹⁰ | 0.04% | `½erfc(Q/√2)` |
-| Q for BER 1e-12 | 7.034 | 7.034 | 0.01% | standard optical benchmark |
-| GN optimal launch (closed-form vs numeric) | 0.600 mW | 0.600 mW | 0.00% | `P_opt=(A/2η)^⅓` |
-| GN optimal launch power | −2.2 dBm/ch | ~−3…0 dBm (typical span) | in band | Poggiolini GN model, JLT 2012 |
+For counter-propagation:
 
-### Forward error correction
+\[
+I_{\mathrm{counter}}(L)=
+\frac{1-e^{-(\alpha_p+\alpha_q)L}}{\alpha_p+\alpha_q}.
+\]
 
-| Check | Computed | Reference | Agree | Source |
-|---|---|---|---|---|
-| RS(255,239) net coding gain (QPSK) | 6.06 dB | 6.2 dB | 2.2% | Nokia / G.709 GFEC |
-| RS(255,239) pre-FEC threshold | 6.5×10⁻⁵ | ~10⁻⁴ order | order match | G.709 GFEC |
-| SD-FEC-20% net coding gain | 11.3 dB | 10–12 dB | in band | modern SD-FEC (Nokia) |
+The implementation is tested against direct numerical quadrature, equal- and
+near-equal-loss limits, unequal C/O-band losses, both directions, and multispan
+accumulation. The prior nonlinear effective length,
+((1-e^{-\alpha L})/\alpha), is still valid for Kerr nonlinear phase but is not
+the co-propagating receiver-side Raman collection law.
 
-The RS decoding waterfall is computed from first principles (bounded-distance
-`t=(n−k)/2` symbol correction), so the threshold and NCG are *derived*, not fitted.
+## Published Raman reproduction
 
-### Quantum key distribution
+The absolute default uses a receiver-effective fit to Configuration G in
+Ferreira da Silva et al., *J. Lightwave Technology* 32(13), 2332–2339 (2014),
+[arXiv:1410.0656](https://arxiv.org/abs/1410.0656).
 
-| Check | Computed | Reference | Agree | Source |
-|---|---|---|---|---|
-| PLOB bound @ 100 km | 0.0145 bits/use | `−log2(1−η)` = 0.01446 | 0.27% | Pirandola et al. 2017 |
-| Decoy-BB84 asymptotic reach | 206 km | demonstrated 144–227 km | in band | arXiv:2512.05101 & others |
+An earlier project calibration read the Figure 4 vertical axis as raw counts per
+gate. The figure is labeled **counts per trigger × (10^{-4})**. Consequently,
+the 60 km co-propagating point is approximately (1.2\times10^{-4}), not 0.15.
 
-### Quantum–classical coexistence (the differentiator)
+The corrected evidence package is
+`validation/golden/raman_da_silva_2014.json`. It records:
 
-| Check | Computed | Reference | Agree | Source |
-|---|---|---|---|---|
-| Spontaneous-Raman counts/gate, da Silva Config G | 0.149 /gate | 0.15 /gate | 0.96% | da Silva et al. JLT 2014 |
-| Resolved Raman: in-band C-band ρ | 2.27×10⁻⁸ /(km·nm) | 2.5×10⁻⁸ | 9.2% | profile anchored to Config G |
-| Resolved Raman: O-band suppression | 32.1 dB | 2–3 decades | in band | Eraerds NJP 2010 (order of magnitude) |
-| Silica Raman gain peak offset | 13.07 THz | 13.2 THz | 0.96% | Agrawal, silica Raman peak |
-| Multi-span N=1 = single span | 1.000 | 1 (exact) | exact | engine consistency |
+- source, figure/table, extraction method, date, and axis multiplier;
+- 14 channels at −10.5 dBm/channel;
+- 1546.12 nm quantum wavelength, 10 GHz filter, 2.5 ns gate, and 15% detector efficiency;
+- six co-propagating and six counter-propagating digitized points; and
+- frozen fit parameters and a 10% per-point acceptance tolerance.
 
-This is the platform's key credibility anchor: the coexistence engine's Raman
-coefficient (`ρ = 2.5×10⁻⁸ /(km·nm)`) reproduces the measured Configuration-G
-operating point of da Silva et al. (14 classical channels at −10.5 dBm/channel over
-60 km, 10 GHz / ~0.08 nm filter, 2.5 ns gate, 15% detector efficiency → ~0.15
-Raman counts per gate) to within 1%. The wavelength-resolved profile
-(`raman_spectrum.py`) reproduces this scalar anchor for the in-band C-band case
-and predicts an O-band (1310 nm) quantum channel to be ≈32 dB quieter, consistent
-with the order of magnitude reported for O-band coexistence. That O-band figure is
-a first-order prediction of the silica gain profile plus the anti-Stokes thermal
-factor, not a directly measured value.
+All 12 points pass. The fitted co-propagating coefficient is
+(4.7081\times10^{-10}\,(\mathrm{km\,nm})^{-1}) at an effective measured loss of
+0.300 dB/km. This coefficient absorbs the source experiment's receiver
+filtering/collection convention. It is **not** a universal silica material
+constant and must be recalibrated for another receiver.
 
-### Polarization / PMD and laser phase noise
+## Browser/Python contract
 
-| Check | Computed | Reference | Agree | Source |
-|---|---|---|---|---|
-| Mean DGD = D√L (100 km, 0.1 ps/√km) | 1.00 ps | 1.00 ps | 0.00% | random-walk law |
-| PMD emulator mean DGD (target 5 ps) | 5.17 ps | 5.0 ps | 3.4% | Maxwellian mean |
-| PMD DGD std/mean | 0.433 | 0.4223 | 2.4% | Maxwellian `√(3π/8−1)` |
-| Phase-noise step variance | 1.96×10⁻⁵ | `2π·Δν·Tₛ` = 1.96×10⁻⁵ | 0.38% | combined-linewidth Wiener |
+The offline explorer loads `explorer/physics_contract.js`. Node-based contract
+tests compare it with the canonical Python engine for:
 
-### Quantum repeaters
+- equal/unequal-loss Raman path integrals and both directions;
+- absolute Raman background yield;
+- WSS narrowing and ROADM insertion loss;
+- GN-model channel SNR;
+- DV and explicitly opted-in TF key rates; and
+- a complete operating point with format, roll-off, FEC, and ROADMs.
 
-| Check | Computed | Reference | Agree | Source |
-|---|---|---|---|---|
-| Repeater vs PLOB @ 500 km | 1.4×10⁶ × PLOB | polynomial ≫ exponential | ✓ | Sangouard et al. RMP 2011 |
-| Repeater advantage crossover | 65.9 km | — | ✓ | where memory-assisted rate beats PLOB |
+The TF result is labeled `scaling_proxy` in both runtimes and cannot produce an
+engineering feasibility verdict.
 
----
+## Model-status boundary
 
-## Method notes and honest caveats
+| Calculation | Status | Automatic recommendation eligible? |
+|---|---|---:|
+| DV-BB84 decoy coexistence | `research_model` | Yes, within developer-alpha scope |
+| CV-QKD coexistence | `research_model` | Yes, within developer-alpha scope |
+| MDI-QKD | `scaling_proxy` | No |
+| Twin-Field QKD | `scaling_proxy` | No |
+| Trusted-node relay | `scaling_proxy` | No |
+| Repeater model | `scaling_proxy` | No |
+| Generic Hoeffding finite-size correction | `sensitivity_estimate` | Not a protocol-specific composable proof |
 
-- **Closed-form checks are the backbone.** Thirteen of the 25 rows compare against
-  an exact expression or a conserved quantity; these cannot be "tuned" and
-  agreement is floating-point-limited. They validate the core propagation, BER,
-  GN-optimum, PLOB, and PMD-statistics machinery outright.
-- **Published anchors carry real uncertainty.** The Raman coefficient is
-  calibrated to *one* reported operating point (da Silva Config G) and inherits a
-  factor-of-a-few uncertainty from that measurement; the report states this, and
-  the coefficient is a single documented constant users can recalibrate to their
-  own hardware. The FEC net-coding-gain and BB84-reach references are themselves
-  ranges, so those checks assert "in the right band."
-- **What is *not* yet independently benchmarked.** The GN model has not been
-  cross-checked against a full split-step multi-channel simulation (only against
-  its own closed form and typical operating ranges); the coexistence key rates
-  have been calibrated but not yet compared end-to-end against a *second*
-  independent coexistence experiment. Both are natural next validation steps and
-  are flagged here rather than hidden.
+High-level MDI/TF workflows require explicit `allow_scaling_proxy=True` opt-in.
+Automatic selection considers only eligible DV/CV research models; proxy values
+may be reported for comparison but cannot win.
+
+## Other analytical/reference checks
+
+The ledger covers, among other items:
+
+- fiber pure loss, SMF-28 loss and β₂;
+- theoretical/Monte-Carlo QPSK BER and Q-factor conversion;
+- GN-model optimum against its closed-form (P_{\mathrm{opt}});
+- RS and SD-FEC reference behavior;
+- PLOB at 100 km and asymptotic decoy-BB84 reach band;
+- silica Raman peak and first-order O-band suppression;
+- PMD/DGD statistics and phase-noise variance; and
+- BBM92/Werner-state analytical consistency.
+
+Reference-band and proxy-sanity rows do not demonstrate predictive accuracy.
+Their purpose is to detect gross convention or scaling errors.
+
+## What remains unvalidated
+
+- No independent iQuant4 hardware or field dataset has been supplied.
+- The default Raman coefficient is based on one published receiver/configuration.
+- The wavelength-resolved Raman spectrum is a first-order extrapolation.
+- GN has not been cross-validated here against a full multi-channel SSFM dataset.
+- DV/CV results use reduced/asymptotic security models.
+- The finite-size calculation is a sensitivity estimate, not a complete
+  protocol-specific composable-security proof.
+- TF, MDI, trusted-node, and repeater rates are scaling proxies.
+- Uncertainty propagation, component inventories, and calibration versioning are
+  not yet a complete product workflow.
 
 ## Reproduce
 
-```
-python -m validation.validate      # prints the full table
+```bash
+python -m validation.validate
+python -m pytest -q
+python -m examples.case_study_metro_qkd
 ```
 
-Sources: RS/FEC net coding gain — Nokia, "What the FEC?"; decoy-BB84 reach —
-arXiv:2512.05101 and the decoy-state QKD literature; Raman coexistence —
-da Silva et al., *J. Lightwave Technol.* 32(13), 2332 (2014) / arXiv:1410.0656;
-GN model — Poggiolini, *JLT* 30(24), 2012; PLOB bound — Pirandola et al.,
-*Nat. Commun.* 8, 15043 (2017); repeaters — Sangouard et al., *Rev. Mod. Phys.*
-83, 33 (2011).
+For the full paper-specific figure set, use the scripts under
+`examples/papers/jlt_secure_coexistence_2026/`, treating their outputs as
+manuscript research artifacts rather than customer design reports.

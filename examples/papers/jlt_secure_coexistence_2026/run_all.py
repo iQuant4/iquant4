@@ -2,9 +2,9 @@
 
     python run_all.py
 
-Prints the headline numbers table, regenerates all figures, and runs the
-Fock-basis and Raman-normalization validations. Every value should match the
-manuscript to the stated precision.
+Prints the headline numbers table and regenerates all figures.  The security
+ceiling and the classical GN optimum are reported separately so that a
+non-binding security constraint cannot be mistaken for launch-power back-off.
 """
 import numpy as np
 from iqcore.fiber import SMF28, Amplifier
@@ -26,18 +26,20 @@ def headline():
     eta = nli_coefficient(SMF28, C.L_km, 1, C.symbol_rate_baud, C.n_channels * C.spacing_hz)
     A = ase_power_w(amp, 1, C.symbol_rate_baud)
     PGN = 10 * np.log10(optimal_launch_power_w(A, eta) / 1e-3)
-    grid = np.linspace(-40, 6, 921)
+    grid = np.linspace(-40, 16, 1121)
     rcl = lambda p: classical_capacity_bps(p, C.n_channels, C.L_km, symbol_rate_baud=C.symbol_rate_baud,
                                            channel_spacing_hz=C.spacing_hz, noise_figure_db=C.noise_figure_db) / 1e12
     r0 = rcl(PGN)
     sl = lambda a: (grid[a >= C.r_min][-1] if (a >= C.r_min).any() else np.nan)
-    Pdv = sl(np.array([coexistence_dv_key_rate(C.L_km, p, C.n_channels, raman=raman_c) for p in grid]))
-    Pcv = sl(np.array([coexistence_cv_key_rate(C.L_km, p, C.n_channels, raman=raman_c, cv_detector=det) for p in grid]))
+    Pdv_sec = sl(np.array([coexistence_dv_key_rate(C.L_km, p, C.n_channels, raman=raman_c) for p in grid]))
+    Pcv_sec = sl(np.array([coexistence_cv_key_rate(C.L_km, p, C.n_channels, raman=raman_c, cv_detector=det) for p in grid]))
+    Pdv = min(PGN, Pdv_sec) if np.isfinite(Pdv_sec) else np.nan
+    Pcv = min(PGN, Pcv_sec) if np.isfinite(Pcv_sec) else np.nan
     print("=== Headline numbers (Table III) ===")
     print(f"  eta_GN = {eta:.1f} /W^2   A = {A:.2e} W")
     print(f"  P_GN          = {PGN:6.2f} dBm/ch   R_cl0 = {r0:.2f} Tb/s")
-    print(f"  DV  P*        = {Pdv:6.2f} dBm/ch   back-off {PGN-Pdv:5.2f} dB   penalty {100*(1-rcl(Pdv)/r0):.1f}%")
-    print(f"  CV  P*        = {Pcv:6.2f} dBm/ch   back-off {PGN-Pcv:5.2f} dB   penalty {100*(1-rcl(Pcv)/r0):.1f}%")
+    print(f"  DV  P_sec,max = {Pdv_sec:6.2f} dBm/ch   P* = {Pdv:6.2f}   back-off {PGN-Pdv:5.2f} dB   penalty {100*(1-rcl(Pdv)/r0):.1f}%")
+    print(f"  CV  P_sec,max = {Pcv_sec:6.2f} dBm/ch   P* = {Pcv:6.2f}   back-off {PGN-Pcv:5.2f} dB   penalty {100*(1-rcl(Pcv)/r0):.1f}%")
     print(f"  O-band Raman  = {10*np.log10(rho_c/rho_o):.1f} dB quieter")
 
 

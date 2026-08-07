@@ -6,16 +6,16 @@
 
 [![Python](https://img.shields.io/badge/python-3.10%E2%80%933.14-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
-[![Validation](https://img.shields.io/badge/validation-21%2F21%20checks-brightgreen)](VALIDATION.md)
-[![Status](https://img.shields.io/badge/status-developer%20alpha%200.2.0a1-orange)](CHANGELOG.md)
+[![Validation](https://img.shields.io/badge/evidence-27%20classified%20checks-brightgreen)](VALIDATION.md)
+[![Status](https://img.shields.io/badge/status-developer%20alpha%200.2.0a2-orange)](CHANGELOG.md)
 
 **[iquant4.com](https://iquant4.com)** · [GitHub](https://github.com/iQuant4/iquant4)
 
-iQuant4 is an engineering-grade simulation platform for fiber-optic links. You
+iQuant4 is a developer-alpha research and design toolkit for fiber-optic links. You
 describe a fiber span once, and the same physical model gives you **classical
 capacity** (BER, OSNR, reach, 400G coherent design) *and* **quantum key
-distribution** performance (DV/CV-QKD, Twin-Field, MDI, repeaters) *and* — the
-part no other open toolkit computes end to end — the **coexistence** of the two
+distribution** estimates (DV/CV-QKD and explicitly labelled scaling proxies) and
+the **coexistence** of the two
 when a quantum channel shares the fiber with live DWDM traffic.
 
 That coexistence engine is the platform's distinguishing capability: it models
@@ -34,8 +34,8 @@ quantum channel ride the fiber you already have, and what does it cost the
 traffic?* — and get a concrete answer: a launch power, a protocol, a reach, and a
 key rate. See the worked
 **[400G metro case study](docs/case_study_metro_qkd.md)**: 17 Tb/s of classical
-traffic **and** a multi-Mbit/s QKD channel on one 60 km fiber, with the overlay
-essentially free.
+traffic and a positive modeled QKD rate on one 60 km fiber under the stated
+receiver, calibration, asymptotic-security, and single-span assumptions.
 
 ## Install
 
@@ -67,7 +67,7 @@ print(f"QKD secret-key rate   : {op.secret_key_rate:.2e} bits/pulse")
 ```text
 classical link closes : True
 net classical capacity: 4.3 Tb/s
-QKD secret-key rate   : 1.71e-03 bits/pulse
+QKD secret-key rate   : 2.82e-03 bits/pulse
 ```
 
 A full guided walkthrough is in **[docs/getting_started.md](docs/getting_started.md)**.
@@ -93,10 +93,10 @@ branches.
 
 **`iq4comm.qkd` — quantum communications & coexistence.**
 
-- **DV-QKD** (decoy-state BB84) and **CV-QKD** (GG02 homodyne) with **finite-key** security; the **PLOB** bound.
-- **Reach extension**: MDI-QKD, Twin-Field QKD, trusted-node relay, and **entanglement / quantum repeaters** (breaks the direct-transmission reach limit).
-- **Coexistence engine**: spontaneous-Raman background/excess-noise from co-propagating DWDM, calibrated to da Silva et al. JLT 2014.
-- **Whole-system model** + optimizer: every knob (distance, loading, launch, format, roll-off, FEC, ROADM count) → both outputs, and the best launch power / protocol for a route.
+- **DV-QKD** (decoy-state BB84) and **CV-QKD** (GG02 homodyne), plus a generic finite-size **sensitivity estimate** and the **PLOB** bound.
+- **Exploratory scaling proxies**: MDI-QKD, Twin-Field QKD, trusted-node relay, and entanglement/repeater models. These are excluded from automatic recommendations.
+- **Coexistence engine**: co/counter-propagating Raman background/excess noise with unequal pump/quantum loss and a traceable reproduction of Ferreira da Silva et al. JLT 2014.
+- **Whole-system model** + optimizer: every knob (distance, loading, launch, format, roll-off, FEC, ROADM count) → both outputs. Automatic protocol selection is restricted to recommendation-eligible DV/CV research models.
 
 ## Validated, not asserted
 
@@ -104,14 +104,16 @@ Every model is benchmarked against a closed-form limit or a published value.
 Run the suite:
 
 ```bash
-python -m validation.validate      # 21/21 checks pass
+python -m validation.validate      # 27 classified automated checks
 ```
 
-Highlights: fiber loss / BER / Q-factor / PLOB / PMD statistics match closed form
-to < 1%; RS(255,239) net coding gain 6.06 dB vs published 6.2 dB; decoy-BB84
-reach 206 km inside the demonstrated 144–227 km band; and the coexistence Raman
-model reproduces da Silva et al.'s measured operating point to **0.96%**. Full
-report with references and honest caveats: **[VALIDATION.md](VALIDATION.md)**.
+Highlights: fiber loss / BER / Q-factor / PLOB / PMD statistics match their
+analytical references; RS(255,239) net coding gain is 6.06 dB versus a 6.2 dB
+reference; and locked tests reproduce all 12 digitized co/counter-propagating
+Raman points from Ferreira da Silva et al. within 10%. The evidence ledger keeps
+analytical checks, literature reproductions, broad reference bands, software
+regressions, and proxy sanity checks separate. **No independent hardware
+validation is claimed.** See **[VALIDATION.md](VALIDATION.md)**.
 
 ## Command line & diagnostics
 
@@ -134,12 +136,12 @@ Guides: [docs/tutorials/alpha_showcase.md](docs/tutorials/alpha_showcase.md) and
 
 ## Status & scope
 
-**Developer Alpha** (`0.2.0a1`) — the physics APIs are stabilising but may still
-change. Models are engineering-grade: asymptotic or first-order in several places
-(documented in `VALIDATION.md`), and the coexistence Raman coefficient is
-calibrated to a single published operating point (recalibrate to your own
-hardware for firm numbers). It is a research and design toolkit, not a claim of
-complete device-level or composable-security coverage.
+**Developer Alpha** (`0.2.0a2`) — the physics APIs are stabilising but may still
+change. Models are reduced, asymptotic, or first-order in several places. The
+Raman coefficient is receiver-effective and fitted to one published experiment;
+it must be recalibrated for another receiver. This toolkit is not a network
+design authority, device digital twin, protocol-specific composable-security
+proof, or substitute for hardware qualification.
 
 ## Learn more
 

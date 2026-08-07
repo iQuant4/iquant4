@@ -23,16 +23,17 @@ optimal-launch/reach, and a learned-equalizer ML layer.
 PLOB bound, **classical–quantum DWDM coexistence** (Raman-calibrated to
 da Silva et al. JLT 2014), and a **joint coexistence optimizer**.
 
-**Engineering** — full test suite (analytical/literature-validated, ~90 cases),
-CI across 5 OS/Python combos, packaging, CLI, docs/portal tooling, Apache-2.0.
+**Engineering** — 400+ regression tests, a 27-check classified evidence ledger,
+browser/Python contract tests, packaging, CLI, docs/portal tooling, Apache-2.0.
 
 **The differentiator** — one `FiberSpec` drives classical capacity, DV/CV-QKD,
 their coexistence coupling, *and* the optimizer that solves for the operating
 point. Your literature/tool scan found no released tool that unifies these.
 
-Honest headline: **~80% to a credible open-source launch; ~30–40% to a product a
-customer pays for.** The science is the hard part and it's largely done; the
-remaining distance is a different kind of work (packaging, then credibility).
+Honest headline: the repository is a credible developer alpha, but scientific
+calibration and product workflow are still the release constraints. The next
+distance is not just packaging: it includes independent evidence, uncertainty,
+and scenario/reporting design.
 
 ---
 
@@ -91,9 +92,8 @@ get the operating point back.* This is where "library" becomes "platform."
 - [ ] **Web UI or API** wrapping `optimize_launch_power` / `coexistence_curve`:
       enter fiber, distance, channel count, QKD target → return the operating
       point + Pareto plot. *(the core product surface; weeks)*
-- [ ] **Interactive explorer** (your "Experiences" pillar) — sweep launch power
-      and distance, watch capacity/key-rate/constellation update live. A great
-      demo and investor artifact. *(weeks)*
+- [x] **Interactive explorer** — sweep launch power and distance with a tested
+      browser/Python contract and explicit proxy-status warnings.
 - [ ] **Hosting/deploy** — a small cloud service; auth if multi-user. *(days–weeks)*
 - [ ] **Differentiable optimizer (the moat)** — port the fiber→QKD chain to
       JAX/PyTorch for gradient-based joint optimization over many variables
@@ -129,8 +129,9 @@ tone. Keep stating:
 - **Asymptotic key rates**, not composable finite-key security.
 - **Reduced/analytical models** in places (GN model, per-symbol Kerr channel for
   the ML demo, single-span coexistence).
-- **One calibration point** for the Raman coefficient (da Silva 2014, factor-of-a-
-  few uncertainty) — a knob to recalibrate to real hardware.
+- **One published receiver/configuration** for the effective Raman coefficient;
+  12 digitized distance points reproduce its co/counter trends, but it still
+  requires receiver-specific hardware calibration.
 - **No experimental/hardware validation yet.** It's a modeling platform.
 
 ---

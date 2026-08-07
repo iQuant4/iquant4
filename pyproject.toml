@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "iq4comm"
-version = "0.2.0a1"
+version = "0.2.0a2"
 description = "iQuant4 — a unified engine for optical and quantum communications, and their coexistence on one fiber"
 readme = "README.md"
 license = "Apache-2.0"

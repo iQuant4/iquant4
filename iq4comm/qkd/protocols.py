@@ -33,11 +33,15 @@ from math import sqrt
 from iqcore.fiber import FiberSpec, SMF28
 from .dv import DetectorModel, bb84_decoy_key_rate
 from .finite_key import FiniteKeyParams, finite_key_fraction
+from .model_status import MDI_MODEL, TF_MODEL, TRUSTED_NODE_MODEL
 
 __all__ = [
     "mdi_qkd_key_rate",
     "tf_qkd_key_rate",
     "trusted_node_key_rate",
+    "MDI_MODEL",
+    "TF_MODEL",
+    "TRUSTED_NODE_MODEL",
 ]
 
 
@@ -45,13 +49,15 @@ def mdi_qkd_key_rate(transmissivity: float, *,
                      detector: DetectorModel | None = None,
                      background_yield: float = 0.0,
                      finite: FiniteKeyParams | None = None) -> float:
-    """MDI-QKD key rate (bits/pulse), asymptotic or finite-key.
+    """MDI-QKD *scaling-proxy* rate (bits/pulse).
 
     Central untrusted relay at the midpoint: the single-photon Bell-measurement
     coincidence scales as the *product* of the two arm transmittances, i.e. as
     the full-path ``transmissivity`` (like BB84), with a coincidence penalty.
     ``background_yield`` injects extra relay-detector clicks (the coexistence
-    hook); ``finite`` switches on the finite-key model.
+    hook); ``finite`` switches on the generic finite-size sensitivity estimate.
+    This implementation is labelled ``scaling_proxy`` and is not eligible for
+    automatic engineering recommendations.
     """
     det = detector or DetectorModel()
     eta = transmissivity
@@ -71,7 +77,7 @@ def tf_qkd_key_rate(transmissivity: float, *,
                     protocol_efficiency: float = 0.25,
                     background_yield: float = 0.0,
                     finite: FiniteKeyParams | None = None) -> float:
-    """Twin-Field QKD key rate (bits/pulse), asymptotic or finite-key.
+    """Twin-field QKD *scaling-proxy* rate (bits/pulse).
 
     Single-photon interference at a central node: a click needs only *one* photon
     to reach the midpoint, so the rate scales as ``sqrt(eta)`` and can exceed the
@@ -80,7 +86,9 @@ def tf_qkd_key_rate(transmissivity: float, *,
     it is why TF-QKD is *lower* than direct BB84 at short range and only wins
     once ``sqrt(eta)`` overtakes ``eta`` at long range.  ``interferometric_error``
     is the phase-stability penalty; ``background_yield`` is the coexistence hook;
-    ``finite`` switches on the finite-key model.
+    ``finite`` switches on the generic finite-size sensitivity estimate.  This
+    implementation is labelled ``scaling_proxy`` and is not a protocol-specific
+    security analysis or an automatic-recommendation candidate.
     """
     det = detector or DetectorModel()
     eta = transmissivity
@@ -98,12 +106,14 @@ def trusted_node_key_rate(distance_km: float, n_nodes: int, *,
                           fiber: FiberSpec = SMF28, protocol: str = "dv",
                           detector: DetectorModel | None = None,
                           mu: float = 0.5) -> float:
-    """End-to-end key rate through ``n_nodes`` trusted intermediate nodes.
+    """End-to-end *scaling-proxy* rate through trusted intermediate nodes.
 
     The link is split into ``n_nodes + 1`` equal amplifier-free segments; each
     runs the base ``protocol`` and the key is relayed, so the end-to-end rate is
     the (identical) per-segment rate.  Adding nodes shortens each segment and
-    lifts the rate -- reaching any distance, if the nodes can be trusted.
+    lifts the rate -- reaching any distance, if the nodes can be trusted.  Node
+    operations, scheduling, availability, and key-management constraints are
+    outside this proxy.
     """
     if n_nodes < 0:
         raise ValueError("n_nodes must be non-negative")
