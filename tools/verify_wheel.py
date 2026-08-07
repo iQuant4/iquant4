@@ -37,6 +37,12 @@ def verify_wheel(wheel_path: Path) -> None:
         "iq4comm/portal/__init__.py",
         "iq4comm/portal/cli.py",
         "iq4comm/portal/site.py",
+        "iq4comm/qkd/coexistence.py",
+        "iq4comm/qkd/entanglement.py",
+        "iq4comm/qkd/model_status.py",
+        "iq4comm/qkd/multispan.py",
+        "iq4comm/qkd/raman_spectrum.py",
+        "iq4comm/qkd/repeater.py",
     }
     missing = sorted(required - names)
     if missing:

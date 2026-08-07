@@ -1,4 +1,4 @@
-"""Finite-key security corrections for QKD.
+"""Finite-block sensitivity corrections for QKD.
 
 Asymptotic key rates assume an infinite number of exchanged signals.  Real
 systems process a finite block of ``N`` pulses, and composable security then
@@ -19,10 +19,12 @@ Commun. 3, 634 (2012).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import log, log2, sqrt
 
-__all__ = ["FiniteKeyParams", "finite_key_fraction"]
+from .model_status import FINITE_KEY_MODEL, ModelStatus
+
+__all__ = ["FiniteKeyParams", "finite_key_fraction", "FINITE_KEY_MODEL"]
 
 
 def _h2(x: float) -> float:
@@ -45,6 +47,8 @@ class FiniteKeyParams:
 
     block_size: float = 1e10
     eps_security: float = 1e-9
+    model_status: ModelStatus = field(
+        default=ModelStatus.SENSITIVITY_ESTIMATE, init=False)
 
     def __post_init__(self) -> None:
         if self.block_size <= 0:
@@ -57,13 +61,15 @@ def finite_key_fraction(gain: float, error: float, *,
                         error_correction_eff: float = 1.16,
                         sift: float = 0.5,
                         params: "FiniteKeyParams | None" = None) -> float:
-    """Secret fraction (bits/pulse) from a channel gain and QBER.
+    """Secret-fraction sensitivity estimate (bits/pulse) from gain and QBER.
 
     With ``params=None`` this is the asymptotic fraction
     ``sift * gain * [1 - (1+f) H2(e)]``.  With finite ``params`` it applies a
-    Hoeffding fluctuation ``t = sqrt(ln(1/eps) / (2 n))`` to the error estimate
+    generic Hoeffding fluctuation ``t = sqrt(ln(1/eps) / (2 n))`` to the error estimate
     (``n`` = detected sifted events) and subtracts the ``O(1/N)`` composable
-    privacy-amplification / error-verification terms.
+    privacy-amplification / error-verification terms.  The result has model
+    status ``sensitivity_estimate`` and is not a protocol-specific composable
+    security proof.
     """
     if gain <= 0.0:
         return 0.0

@@ -25,10 +25,10 @@ def test_optimum_meets_constraint_and_is_secure():
 
 def test_constraint_binds_when_qkd_is_tight():
     """A demanding key-rate target forces backing off below the GN optimum."""
-    strict = optimize_launch_power(50.0, 20, min_key_rate=1e-3, protocol="dv")
+    strict = optimize_launch_power(50.0, 20, min_key_rate=4.4e-3, protocol="dv")
     assert strict.feasible and strict.qkd_constraint_binds
     # At the optimum the key rate sits essentially at the requirement.
-    assert strict.secret_key_rate == pytest.approx(1e-3, rel=5e-3)
+    assert strict.secret_key_rate == pytest.approx(4.4e-3, rel=5e-3)
 
 
 def test_loose_constraint_reaches_gn_optimum():

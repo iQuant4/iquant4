@@ -10,7 +10,8 @@ its public APIs, and prints the answer with the numbers that back it. Run:
 
     python -m examples.case_study_metro_qkd
 
-Every value below is computed live from the validated models (see VALIDATION.md).
+Every value below is computed live.  MDI/TF are printed only as explicitly
+labelled scaling proxies and are excluded from the automatic recommendation.
 """
 
 from __future__ import annotations
@@ -67,45 +68,53 @@ def main() -> None:
 
     # --- Step 2: the coexistence constraint ------------------------------
     # The quantum channel needs LOW classical power (Raman); the classical link
-    # needs ENOUGH to close. Operate at the classical close point + 3 dB OSNR
-    # margin, which is still far below where QKD dies -> the overlay is "free".
+    # needs ENOUGH to close. Evaluate a candidate point 3 dB above the classical
+    # close threshold; this is a scenario result, not a hardware qualification.
     p_op = p_close + 3.0
     cap, ber, closes = format_capacity_bps(
         FORMAT, p_op, N_CHANNELS, DISTANCE_KM, fec=FEC,
         symbol_rate_baud=SYMBOL_RATE, channel_spacing_hz=CHANNEL_SPACING)
-    print("\n[2] OPERATING POINT (classical margin absorbs the QKD back-off)")
+    print("\n[2] CANDIDATE OPERATING POINT")
     print(f"    operating launch       : {p_op:.1f} dBm/ch (min-close + 3 dB OSNR margin)")
     print(f"    classical still closes : {closes}  (BER {ber:.1e})")
-    print(f"    classical capacity kept: {per_channel_net_gbps()*N_CHANNELS/1e3:.1f} Tb/s "
-          f"(unchanged — overlay costs 0 classical capacity)")
+    print(f"    modeled net capacity   : {per_channel_net_gbps()*N_CHANNELS/1e3:.1f} Tb/s")
 
     # --- Step 3: the QKD overlay -----------------------------------------
     print("\n[3] QKD OVERLAY — secret-key rate at the operating point")
-    for proto, label in (("dv", "DV-BB84 (decoy)"), ("cv", "CV-QKD (homodyne)"),
-                         ("tf", "Twin-Field"), ("mdi", "MDI-QKD")):
+    for proto, label in (("dv", "DV-BB84 (decoy)"),
+                         ("cv", "CV-QKD (homodyne)")):
         skr = protocol_coexistence_key_rate(proto, DISTANCE_KM, p_op, N_CHANNELS)
         print(f"    {label:<20}: {skr:.2e} bits/pulse  "
               f"~ {skr*QKD_CLOCK_HZ/1e3:6.1f} kbit/s @ {QKD_CLOCK_HZ/1e9:.0f} GHz clock")
+    for proto, label in (("tf", "Twin-Field [proxy]"),
+                         ("mdi", "MDI-QKD [proxy]")):
+        skr = protocol_coexistence_key_rate(
+            proto, DISTANCE_KM, p_op, N_CHANNELS,
+            allow_scaling_proxy=True)
+        print(f"    {label:<20}: {skr:.2e} bits/pulse  exploratory only")
     best, best_rate, _ = select_best_protocol(DISTANCE_KM, N_CHANNELS, p_op)
-    print(f"    best protocol here     : {best.upper()}  "
-          f"(CV-QKD reuses the same coherent receivers as the 400G channels)")
+    best_label = best.upper() if best is not None else "NONE"
+    print(f"    eligible recommendation: {best_label}  (rate {best_rate:.2e})")
 
     # --- Step 4: reach -----------------------------------------------------
-    print("\n[4] REACH — how far the overlay scales before it needs help")
-    for proto, label in (("dv", "DV-BB84"), ("tf", "Twin-Field")):
+    print("\n[4] MODEL REACH — asymptotic/reduced-model sensitivity")
+    for proto, label, allow_proxy in (("dv", "DV-BB84", False),
+                                      ("tf", "Twin-Field [proxy]", True)):
         reach = coexistence_reach(
             N_CHANNELS, QKD_FLOOR, min_capacity_bps=1e12, protocol=proto,
             symbol_rate_baud=SYMBOL_RATE, channel_spacing_hz=CHANNEL_SPACING,
-            max_distance_km=200.0)
-        print(f"    {label:<10}: coexistence to ~{reach:.0f} km "
+            max_distance_km=500.0,
+            allow_scaling_proxy=allow_proxy)
+        print(f"    {label:<18}: coexistence to ~{reach:.0f} km "
               f"({'covers this route' if reach >= DISTANCE_KM else 'short of route'})")
-    print("    beyond that: trusted-node relay or a quantum repeater (both modelled).")
+    print("    TF, trusted-node, and repeater outputs are scaling proxies, not designs.")
 
     print("\n" + line)
-    print("VERDICT: on this 60 km metro route you can carry "
-          f"{per_channel_net_gbps()*N_CHANNELS/1e3:.0f} Tb/s of 400G traffic")
-    print("         AND a secure QKD channel on one fiber — the quantum overlay is")
-    print("         essentially free because the 400G link closes with margin to spare.")
+    print("MODEL RESULT: the stated 60 km scenario keeps the "
+          f"{per_channel_net_gbps()*N_CHANNELS/1e3:.0f} Tb/s classical link closed")
+    print("              while the eligible DV/CV research models return positive key")
+    print("              rates. Hardware calibration and protocol-specific security")
+    print("              analysis are required before an engineering decision.")
     print(line)
 
 

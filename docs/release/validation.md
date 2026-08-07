@@ -8,9 +8,9 @@ claim that all physical regimes or security models are covered.
 
 | Item | Value |
 |---|---|
-| Python | 3.14.6 |
-| Platform | Windows-11-10.0.26200-SP0 |
-| CVXPY | available |
+| Python | 3.12.13 |
+| Platform | Linux-6.12.13-x86_64-with-glibc2.39 |
+| CVXPY | not installed (SDP tests are skipped) |
 
 ## Analytical and numerical checks
 
@@ -21,7 +21,7 @@ claim that all physical regimes or security models are covered.
 | Squeezed X variance | 0.123298498234 | 0.123298481971 |
 | Squeezed P variance | 2.027599965637 | 2.027599983422 |
 | 50 km fiber transmissivity | 0.100000000000 | 0.100000000000 |
-| 50:50 beam-splitter unitarity error | 1.035e-15 | near machine precision |
+| 50:50 beam-splitter unitarity error | 9.196e-16 | near machine precision |
 | HOM P(2,0) | 0.500000000000 | 0.500000000000 |
 | HOM P(1,1) | 4.930e-32 | 0 |
 | HOM P(0,2) | 0.500000000000 | 0.500000000000 |

@@ -11,6 +11,8 @@ from iq4comm.qkd import (
     system_key_rate,
     system_operating_point,
     protocol_coexistence_key_rate,
+    ModelStatus,
+    ScalingProxyOptInRequired,
 )
 
 
@@ -53,7 +55,9 @@ def test_higher_launch_lowers_qkd_rate():
 
 
 def test_cv_roadm_also_reduces_rate():
-    d, p, n = 30.0, -16.0, 20
+    # The corrected longitudinal Raman integral moves the 30 km secure boundary
+    # below -16 dBm/ch; use an interior secure point for the ROADM-loss test.
+    d, p, n = 30.0, -20.0, 20
     r0 = system_key_rate("cv", d, p, n, n_roadms=0)
     r4 = system_key_rate("cv", d, p, n, n_roadms=4)
     assert r0 >= r4 >= 0
@@ -68,6 +72,8 @@ def test_system_operating_point_reports_both_outputs():
     assert op.roadm_loss_db > 0
     assert op.secret_key_rate >= 0
     assert op.fec_name == "HD-FEC 7% (staircase)"
+    assert op.qkd_model_status is ModelStatus.RESEARCH_MODEL
+    assert op.qkd_automatic_recommendation_eligible
     # capacity is charged the code overhead when it closes
     if op.classical_closes:
         assert op.classical_capacity_bps > 0
@@ -88,3 +94,16 @@ def test_roadm_narrowing_penalty_can_break_classical_link():
 def test_invalid_protocol_raises():
     with pytest.raises(ValueError):
         system_key_rate("nope", 40.0, -12.0, 40)
+
+
+def test_system_proxy_requires_opt_in_and_stays_labelled():
+    with pytest.raises(ScalingProxyOptInRequired):
+        system_key_rate("tf", 80.0, -20.0, 20)
+    rate = system_key_rate(
+        "tf", 80.0, -20.0, 20, allow_scaling_proxy=True)
+    assert rate >= 0.0
+    op = system_operating_point(
+        80.0, 20, -20.0, qkd_protocol="tf",
+        allow_scaling_proxy=True)
+    assert op.qkd_model_status is ModelStatus.SCALING_PROXY
+    assert not op.qkd_automatic_recommendation_eligible

@@ -11,6 +11,7 @@ REQUIRED_SUFFIXES = {
     "LICENSE",
     "README.md",
     "CHANGELOG.md",
+    "VALIDATION.md",
     "CONTRIBUTING.md",
     "SECURITY.md",
     "CITATION.cff",
@@ -32,6 +33,11 @@ REQUIRED_SUFFIXES = {
     ".github/workflows/pages.yml",
     "docs/tutorials/showcase_dashboard.md",
     "examples/showcase/build_dashboard.py",
+    "explorer/iquant4_explorer.html",
+    "explorer/physics_contract.js",
+    "validation/golden/raman_da_silva_2014.json",
+    "tests/test_browser_python_contract.py",
+    "tests/test_literature_golden.py",
 }
 
 FORBIDDEN_PARTS = {

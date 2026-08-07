@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "dataset_id": "ferreira_da_silva_2014_figure4_config_g",
+  "evidence_class": "digitized_published_experiment",
+  "source": {
+    "citation": "T. Ferreira da Silva et al., Journal of Lightwave Technology 32(13), 2332-2339 (2014)",
+    "title": "Impact of Raman Scattered Noise from Multiple Telecom Channels on Fiber-Optic QKD Systems",
+    "arxiv_url": "https://arxiv.org/abs/1410.0656",
+    "figure": "Figure 4, Configuration G",
+    "table": "Table I (channel set) and Table II (reported coefficient trends)"
+  },
+  "extraction": {
+    "method": "manual axis calibration plus colour-marker centroid extraction from a 180 dpi PDF render",
+    "performed_utc": "2026-08-06",
+    "axis_multiplier": 0.0001,
+    "notes": [
+      "Figure 4 labels its vertical axis as counts per trigger times 10^-4.",
+      "Values are approximate digitizations of the coloured Configuration-G markers, not author-supplied raw data.",
+      "The paper states that measured excess losses in addition to fiber attenuation were included in its fit."
+    ]
+  },
+  "configuration": {
+    "quantum_wavelength_nm": 1546.12,
+    "classical_channel_count": 14,
+    "launch_power_dbm_per_channel": -10.5,
+    "filter_bandwidth_ghz": 10.0,
+    "filter_bandwidth_nm_at_quantum_wavelength": 0.07973806513838316,
+    "gate_time_s": 2.5e-9,
+    "detector_efficiency": 0.15
+  },
+  "series": {
+    "co": {
+      "distance_km": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+      "counts_per_trigger": [0.000681, 0.000688, 0.000517, 0.000359, 0.000203, 0.000120],
+      "frozen_fit": {
+        "attenuation_db_per_km": 0.3001634467637991,
+        "effective_rho_per_km_per_nm": 4.708129334491568e-10,
+        "model": "rho * P_total * bandwidth_nm * L * exp(-alpha*L)",
+        "max_allowed_relative_point_error": 0.10
+      }
+    },
+    "counter": {
+      "distance_km": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+      "counts_per_trigger": [0.000682, 0.000868, 0.000879, 0.001017, 0.001004, 0.001001],
+      "frozen_fit": {
+        "attenuation_db_per_km": 0.23538425819591946,
+        "effective_rho_per_km_per_nm": 3.7030211667450655e-10,
+        "model": "rho * P_total * bandwidth_nm * (1-exp(-2*alpha*L))/(2*alpha)",
+        "max_allowed_relative_point_error": 0.10
+      }
+    }
+  },
+  "limitations": [
+    "The effective rho absorbs receiver filtering and collection conventions and is not a universal silica Raman coefficient.",
+    "Co- and counter-propagating data were fitted separately, matching the source paper's separately measured coefficients and losses.",
+    "This dataset validates the longitudinal distance law and order of magnitude; it does not establish prediction accuracy for other fibers, spectra, receivers, or temperatures."
+  ]
+}

@@ -2,12 +2,14 @@
 
 Run:  python -m validation.validate      (from the repo root)
 
-Each check compares a computed platform value against either a closed-form /
-conserved-quantity reference (exact) or a published experimental/standard value,
-and reports the agreement.  Prints a table and a machine-readable summary.
+Each check is assigned an evidence class so a software regression, an analytical
+identity, a broad reference-band comparison, and a reproduction of published
+experimental data are never presented as equivalent evidence.
 """
 
 from __future__ import annotations
+
+from dataclasses import replace
 
 import numpy as np
 
@@ -26,7 +28,15 @@ from iq4comm.qkd import (bb84_decoy_key_rate, plob_bound_bits,
 CHECKS: list[dict] = []
 
 
-def record(name, computed, reference, source, tol_pct=None, exact=False, note=""):
+def record(name, computed, reference, source, tol_pct=None, tol_abs=None,
+           exact=False, evidence_class=None, note=""):
+    """Record one explicitly falsifiable check and its evidence class."""
+    if tol_pct is None and tol_abs is None:
+        raise ValueError(f"{name}: every check requires tol_pct or tol_abs")
+    if evidence_class is None:
+        evidence_class = (
+            "analytical_verification" if exact else "reference_band"
+        )
     ok = True
     agree = ""
     if isinstance(reference, (int, float)) and isinstance(computed, (int, float)) \
@@ -35,8 +45,15 @@ def record(name, computed, reference, source, tol_pct=None, exact=False, note=""
         agree = f"{err:.2f}%"
         if tol_pct is not None:
             ok = err <= tol_pct
+        if tol_abs is not None:
+            ok = ok and abs(computed - reference) <= tol_abs
+    elif isinstance(reference, (int, float)) and isinstance(computed, (int, float)):
+        agree = f"abs {abs(computed - reference):.3g}"
+        if tol_abs is not None:
+            ok = abs(computed - reference) <= tol_abs
     CHECKS.append(dict(name=name, computed=computed, reference=reference,
-                       source=source, agree=agree, ok=ok, exact=exact, note=note))
+                       source=source, agree=agree, ok=ok, exact=exact,
+                       evidence_class=evidence_class, note=note))
 
 
 # ---- A. Fiber propagation (closed-form / conserved) ----
@@ -58,18 +75,20 @@ rng = np.random.default_rng(0)
 th = ber_theory("QPSK", 8.0)
 mc = monte_carlo_ber("QPSK", 8.0, num_bits=4_000_000, rng=rng).ber
 record("QPSK BER @ 8 dB: MC vs theory", mc, th, "Monte-Carlo agreement",
-       tol_pct=5.0)
+       tol_pct=5.0, evidence_class="analytical_verification")
 # Eb/N0 for QPSK BER=1e-3 -> 6.79 dB (Q(sqrt(2 Eb/N0))=1e-3)
 from scipy.optimize import brentq
 ebn0_1e3 = brentq(lambda x: ber_theory("QPSK", x) - 1e-3, 0, 15)
 record("QPSK Eb/N0 for BER 1e-3 (dB)", ebn0_1e3, 6.79,
-       "closed form Q^-1", tol_pct=1.0)
+       "closed form Q^-1", tol_pct=1.0,
+       evidence_class="analytical_verification")
 
 # ---- C. Q-factor <-> BER ----
 record("Q=6 -> BER", q_to_ber(6.0), 9.87e-10, "Q(6)=erfc(6/sqrt2)/2",
-       tol_pct=1.0)
+       tol_pct=1.0, evidence_class="analytical_verification")
 record("Q for BER 1e-12 (dB-lin)", ber_to_q(1e-12), 7.034,
-       "standard optical benchmark", tol_pct=0.5)
+       "standard optical benchmark", tol_pct=0.5,
+       evidence_class="analytical_verification")
 
 # ---- D. GN model: optimal launch (closed form vs numeric) ----
 d_km = 100.0
@@ -109,26 +128,41 @@ record("Decoy-BB84 asymptotic reach (km)", reach, 200.0,
        note="model reach in the demonstrated band")
 
 # ---- G. Raman coexistence: reproduce da Silva et al. JLT 2014 Config G ----
-# 60 km, 14 channels @ -10.5 dBm/ch, 10 GHz (~0.08 nm) filter, 2.5 ns gate,
-# 15% detector efficiency -> ~0.15 Raman counts/gate (co-propagating).
+# 60 km, 14 channels @ -10.5 dBm/ch, 10 GHz (~0.0797 nm) filter, 2.5 ns gate,
+# 15% detector efficiency.  Fig. 4's y axis is x10^-4; the Configuration-G
+# 60 km co-propagating point is approximately 1.20e-4 counts/gate.  The fitted
+# end-to-end loss is 0.300 dB/km because the paper includes measured excess loss.
 p_ch = 1e-3 * 10 ** (-10.5 / 10)
-dasilva = RamanModel(filter_bandwidth_nm=0.08, gate_time_s=2.5e-9)
-counts = raman_background_yield(p_ch * 14, 60.0, raman=dasilva,
+dasilva_loss = 0.3001634467637991
+dasilva_fiber = replace(SMF28, attenuation_db_per_km=dasilva_loss)
+dasilva = RamanModel(filter_bandwidth_nm=0.07973806513838316,
+                     gate_time_s=2.5e-9,
+                     quantum_wavelength_nm=1546.12,
+                     pump_attenuation_db_per_km=dasilva_loss)
+counts = raman_background_yield(p_ch * 14, 60.0, fiber=dasilva_fiber,
+                               raman=dasilva,
                                detector_efficiency=0.15)
-record("Raman counts/gate (da Silva Config G)", counts, 0.15,
-       "da Silva et al. JLT 2014 / arXiv:1410.0656", tol_pct=40.0,
-       note="calibration anchor")
+record("Raman counts/gate (da Silva Config G, 60 km)", counts, 1.20e-4,
+       "da Silva et al. JLT 2014 Fig. 4(a) / arXiv:1410.0656", tol_pct=10.0,
+       evidence_class="literature_reproduction",
+       note="digitized literature-reproduction point; y axis is x10^-4")
 
 # ---- G2. Wavelength-resolved Raman: O-band vs in-band C-band ----
 # The silica Raman profile + Bose factor predicts the O-band quantum channel
 # (anti-Stokes, ~35 THz from C-band) is orders of magnitude quieter. Published
 # O-band coexistence noise is 2-3 decades below in-band C-band; the profile
 # prediction must land in that band and reproduce the C-band anchor.
-from iq4comm.qkd.raman_spectrum import band_raman_coefficient, silica_raman_gain
+from iq4comm.qkd.raman_spectrum import (
+    ANCHOR_RHO_PER_KM_PER_NM,
+    band_raman_coefficient,
+    silica_raman_gain,
+)
 rho_cband = band_raman_coefficient(1546.12, 1549.0)
 rho_oband = band_raman_coefficient(1310.0, 1550.0)
-record("Resolved Raman: in-band C-band rho (/km/nm)", rho_cband, 2.5e-8,
+record("Resolved Raman: in-band C-band rho (/km/nm)", rho_cband,
+       ANCHOR_RHO_PER_KM_PER_NM,
        "profile anchored to da Silva Config G", tol_pct=15.0,
+       evidence_class="software_regression",
        note="reproduces scalar calibration")
 record("Resolved Raman: O-band suppression (dB)",
        10 * np.log10(rho_cband / rho_oband), 30.0,
@@ -144,7 +178,8 @@ from iq4comm.qkd.multispan import multispan_dv_key_rate
 k_single = coexistence_dv_key_rate(80.0, -15.0, 8)
 k_multi1 = multispan_dv_key_rate(-15.0, 8, 80.0, 1)
 record("Multi-span N=1 equals single span", k_multi1 / k_single, 1.0,
-       "multispan reduces to coexistence engine", tol_pct=0.01, exact=True)
+       "multispan reduces to coexistence engine", tol_pct=0.01, exact=True,
+       evidence_class="software_regression")
 
 # ---- H. PMD statistics ----
 record("Mean DGD = D sqrt(L) (100 km, 0.1 ps/sqrt-km)", mean_dgd_ps(0.1, 100.0),
@@ -164,10 +199,12 @@ record("Phase-noise step variance (2 pi dnu Ts)", np.var(np.diff(ph)),
 best500 = optimal_segment_count(500.0)
 record("Repeater beats PLOB @ 500 km (ratio)",
        best500.secret_key_rate / direct_plob_rate(500.0), 1e6,
-       "polynomial vs exponential scaling", tol_pct=None,
+       "polynomial vs exponential scaling", tol_pct=60.0,
+       evidence_class="scaling_proxy_sanity",
        note=f"repeater {best500.secret_key_rate:.1e} vs PLOB {direct_plob_rate(500.0):.1e}")
 record("Repeater advantage crossover (km)", repeater_advantage_distance(), 66.0,
-       "where repeater overtakes PLOB", tol_pct=None)
+       "where repeater overtakes PLOB", tol_pct=5.0,
+       evidence_class="scaling_proxy_sanity")
 
 # ---- K. Entanglement distribution (BBM92) ----
 from iq4comm.qkd.entanglement import (bbm92_key_rate, coincidence_qber,
@@ -179,7 +216,8 @@ from iq4comm.qkd.dv import binary_entropy
 e11 = 0.110
 sec_frac_11 = 1.0 - 2.0 * binary_entropy(e11)
 record("BBM92 secret fraction at QBER=11%", sec_frac_11, 0.0,
-       "one-way BB84/BBM92 QBER threshold", tol_pct=None, note="~0 at the 0.11 limit")
+       "one-way BB84/BBM92 QBER threshold", tol_abs=2e-4,
+       evidence_class="analytical_verification", note="~0 at the 0.11 limit")
 # QBER -> Werner fidelity -> QBER round trip is exact
 F = elementary_link_fidelity(30.0)
 record("BBM92 QBER<->Werner fidelity round trip", werner_qber(F),
@@ -188,17 +226,25 @@ record("BBM92 QBER<->Werner fidelity round trip", werner_qber(F),
 
 def main():
     npass = sum(1 for c in CHECKS if c["ok"])
-    print(f"\n{'CHECK':<44}{'COMPUTED':>13}{'REFERENCE':>13}{'AGREE':>9}  SOURCE")
-    print("-" * 120)
+    print(f"\n{'CHECK':<44}{'COMPUTED':>13}{'REFERENCE':>13}{'AGREE':>11}  {'LEVEL':<24} SOURCE")
+    print("-" * 150)
     for c in CHECKS:
         comp = c["computed"]; ref = c["reference"]
         cs = f"{comp:.4g}" if isinstance(comp, float) else str(comp)
         rs_ = f"{ref:.4g}" if isinstance(ref, (int, float)) else str(ref)
         flag = "  ok" if c["ok"] else " CHK"
         ex = "*" if c["exact"] else " "
-        print(f"{c['name']:<44}{cs:>13}{rs_:>13}{c['agree']:>9}{flag}{ex} {c['source']}")
-    print("-" * 120)
-    print(f"{npass}/{len(CHECKS)} checks within tolerance.  (* = exact closed-form/conserved)")
+        print(f"{c['name']:<44}{cs:>13}{rs_:>13}{c['agree']:>11}{flag}{ex} "
+              f"{c['evidence_class']:<24} {c['source']}")
+    print("-" * 150)
+    classes = {}
+    for check in CHECKS:
+        classes[check["evidence_class"]] = classes.get(check["evidence_class"], 0) + 1
+    ledger = ", ".join(f"{name}={count}" for name, count in sorted(classes.items()))
+    print(f"{npass}/{len(CHECKS)} automated checks within tolerance; this is not one "
+          "undifferentiated validation claim.")
+    print(f"Evidence ledger: {ledger}; independent_hardware_validation=0")
+    print("(* = exact closed-form/conserved quantity)")
     return npass, len(CHECKS)
 
 

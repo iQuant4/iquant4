@@ -25,7 +25,11 @@ OUT = "figures"
 rho_c = band_raman_coefficient(C.quantum_cband_nm, C.classical_center_nm)
 rho_o = band_raman_coefficient(C.quantum_oband_nm, C.classical_center_nm)
 raman_c = RamanModel(raman_coeff_per_km_per_nm=rho_c, quantum_wavelength_nm=1550.0)
-raman_o = RamanModel(raman_coeff_per_km_per_nm=rho_o, quantum_wavelength_nm=1310.0)
+raman_o = RamanModel(
+    raman_coeff_per_km_per_nm=rho_o,
+    quantum_wavelength_nm=1310.0,
+    pump_attenuation_db_per_km=SMF28.attenuation_db_per_km,
+)
 oband = dataclasses.replace(SMF28, attenuation_db_per_km=C.oband_attenuation_db_per_km)
 det = CVDetector(efficiency=C.cv_efficiency, electronic_noise=C.cv_electronic_noise,
                  reconciliation_efficiency=C.cv_reconciliation)
@@ -40,6 +44,11 @@ def p_gn(L, nch, fiber=SMF28):
 def seclim(grid, a):
     ok = a >= C.r_min
     return grid[ok][-1] if ok.any() else np.nan
+
+
+def constrained_power(classical_optimum, security_ceiling):
+    """Return the feasible classical optimum for a scalar security ceiling."""
+    return min(classical_optimum, security_ceiling) if np.isfinite(security_ceiling) else np.nan
 
 
 def fig_raman_profile():
@@ -86,7 +95,7 @@ def fig_regime():
     PS = np.array([seclim(grid, np.array([coexistence_dv_key_rate(L, p, C.n_channels, raman=raman_c) for p in grid])) for L in dists])
     fig, ax = plt.subplots(figsize=(7, 4.4))
     ax.plot(dists, PG, "-", color="#333", lw=2.2, label=r"$P_{\rm GN}$")
-    ax.plot(dists, PS, "--", color="#c0392b", lw=2.2, label=r"$P^\star_{\rm sec}$ (DV)")
+    ax.plot(dists, PS, "--", color="#c0392b", lw=2.2, label=r"$P_{\rm sec,max}$ (DV)")
     cl = PS >= PG
     ax.fill_between(dists, -32, 9, where=cl, color="#149c7c", alpha=0.10)
     ax.fill_between(dists, -32, 9, where=~cl & ~np.isnan(PS), color="#c0392b", alpha=0.08)
@@ -102,10 +111,13 @@ def fig_load():
     ps = [seclim(grid, np.array([coexistence_dv_key_rate(C.L_km, p, n, raman=raman_c) for p in grid])) for n in loads]
     fig, ax = plt.subplots(figsize=(7, 4.2))
     ax.plot(loads, pg, "o-", color="#333", lw=2, label=r"$P_{\rm GN}$")
-    ax.plot(loads, ps, "s--", color="#c0392b", lw=2, label=r"$P^\star_{\rm DV}$")
-    ax.fill_between(loads, ps, pg, color="#c0392b", alpha=0.12)
+    ax.plot(loads, ps, "s--", color="#c0392b", lw=2, label=r"$P_{\rm sec,max}$ (DV)")
+    pg_array = np.asarray(pg)
+    ps_array = np.asarray(ps)
+    ax.fill_between(loads, ps_array, pg_array, where=ps_array < pg_array,
+                    color="#c0392b", alpha=0.12)
     ax.set_xlabel("classical channels $N_c$"); ax.set_ylabel("per-channel launch power (dBm)")
-    ax.set_title("Security headroom shrinks with loading"); ax.legend(fontsize=9)
+    ax.set_title("Security ceiling versus classical GN optimum"); ax.legend(fontsize=9)
     fig.tight_layout(); fig.savefig(f"{OUT}/fig_load.png", dpi=160); plt.close(fig)
 
 
@@ -131,7 +143,9 @@ def fig_rmin():
     cv = np.array([coexistence_cv_key_rate(C.L_km, p, C.n_channels, raman=raman_c, cv_detector=det) for p in grid])
     PGN = p_gn(C.L_km, C.n_channels)
     bnd = lambda a, rm: (grid[a >= rm][-1] if (a >= rm).any() else np.nan)
-    Pdv = [bnd(dv, rm) for rm in rmins]; Pcv = [bnd(cv, rm) for rm in rmins]
+    Pdv_sec = [bnd(dv, rm) for rm in rmins]; Pcv_sec = [bnd(cv, rm) for rm in rmins]
+    Pdv = [constrained_power(PGN, p) for p in Pdv_sec]
+    Pcv = [constrained_power(PGN, p) for p in Pcv_sec]
     fig, ax = plt.subplots(figsize=(7, 4.4))
     ax.semilogx(rmins, Pdv, "-", color="#c0392b", lw=2.2, label=r"$P^\star$, DV")
     ax.semilogx(rmins, Pcv, "--", color="#e67e22", lw=2.2, label=r"$P^\star$, CV")

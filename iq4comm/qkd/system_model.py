@@ -40,6 +40,11 @@ from .coexistence import (
     RamanModel, raman_background_yield, coexistence_cv_key_rate,
 )
 from .finite_key import FiniteKeyParams
+from .model_status import (
+    ModelStatus,
+    protocol_model_info,
+    require_scaling_proxy_opt_in,
+)
 from .format_impact import format_capacity_bps
 
 __all__ = [
@@ -63,13 +68,17 @@ def system_key_rate(protocol: str, distance_km: float, launch_dbm_per_channel: f
                     detector: DetectorModel | None = None,
                     cv_detector: CVDetector | None = None,
                     raman: RamanModel | None = None,
-                    finite: FiniteKeyParams | None = None, mu: float = 0.5) -> float:
+                    finite: FiniteKeyParams | None = None, mu: float = 0.5,
+                    allow_scaling_proxy: bool = False) -> float:
     """QKD secret-key rate under DWDM coexistence *and* ROADM insertion loss.
 
     ROADM loss attenuates the quantum channel (``eta_eff = eta * 10^(-L/10)``)
-    while the Raman background is taken at the physical distance.
+    while the Raman background is taken at the physical distance.  MDI/TF are
+    scaling proxies and require explicit exploratory opt-in.
     """
     proto = protocol.lower()
+    require_scaling_proxy_opt_in(
+        proto, allow_scaling_proxy=allow_scaling_proxy)
     det = detector or DetectorModel()
     loss_db = roadm_insertion_loss_db(n_roadms, wss)
     p_total = 1e-3 * 10.0 ** (launch_dbm_per_channel / 10.0) * n_channels
@@ -110,6 +119,8 @@ class SystemPoint:
     classical_closes: bool
     roadm_loss_db: float
     secret_key_rate: float
+    qkd_model_status: ModelStatus
+    qkd_automatic_recommendation_eligible: bool
 
     @property
     def capacity_tbps(self) -> float:
@@ -126,7 +137,8 @@ def system_operating_point(distance_km: float, n_channels: int,
                            cv_detector: CVDetector | None = None,
                            raman: RamanModel | None = None,
                            finite: FiniteKeyParams | None = None,
-                           mu: float = 0.5) -> SystemPoint:
+                           mu: float = 0.5,
+                           allow_scaling_proxy: bool = False) -> SystemPoint:
     """Evaluate classical capacity and QKD key rate for one full design point.
 
     The pulse-shaping roll-off sets the channel spacing (hence the WDM bandwidth
@@ -134,6 +146,8 @@ def system_operating_point(distance_km: float, n_channels: int,
     classical link and insertion loss to the quantum channel; the FEC code sets
     the closure threshold and charges its overhead.  One call, both outputs.
     """
+    qkd_info = require_scaling_proxy_opt_in(
+        qkd_protocol, allow_scaling_proxy=allow_scaling_proxy)
     pulse = pulse or PulseShape("rrc", 0.2)
     spacing = pulse.channel_spacing_hz(symbol_rate_baud)
 
@@ -152,9 +166,11 @@ def system_operating_point(distance_km: float, n_channels: int,
     skr = system_key_rate(qkd_protocol, distance_km, launch_dbm_per_channel,
                           n_channels, n_roadms=n_roadms, wss=wss, fiber=fiber,
                           detector=detector, cv_detector=cv_detector, raman=raman,
-                          finite=finite, mu=mu)
+                          finite=finite, mu=mu,
+                          allow_scaling_proxy=allow_scaling_proxy)
 
     return SystemPoint(
         distance_km, n_channels, launch_dbm_per_channel, fmt, pulse.beta,
         (fec.name if fec is not None else None), n_roadms, spacing,
-        cap, closes, roadm_insertion_loss_db(n_roadms, wss), skr)
+        cap, closes, roadm_insertion_loss_db(n_roadms, wss), skr,
+        qkd_info.status, qkd_info.automatic_recommendation_eligible)

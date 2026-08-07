@@ -67,7 +67,9 @@ def test_cv_more_restrictive_than_dv_at_long_reach():
     raman = RamanModel(
         raman_coeff_per_km_per_nm=band_raman_coefficient(1546.12, 1550.0),
         quantum_wavelength_nm=1550.0)
-    grid = np.linspace(-40.0, 6.0, 921)
+    # Extend beyond both corrected security ceilings; a shorter historical
+    # sweep clipped the DV result at its upper grid edge.
+    grid = np.linspace(-40.0, 16.0, 1121)
 
     def boundary(fn):
         vals = np.array([fn(d, p, nch, raman=raman) for p in grid])
@@ -77,5 +79,5 @@ def test_cv_more_restrictive_than_dv_at_long_reach():
     p_dv = boundary(coexistence_dv_key_rate)
     p_cv = boundary(coexistence_cv_key_rate)
     assert p_cv < p_dv                       # CV is the more restrictive protocol
-    assert p_dv == pytest.approx(-13.2, abs=0.5)
-    assert p_cv == pytest.approx(-21.5, abs=1.0)
+    assert p_dv == pytest.approx(14.25, abs=0.1)
+    assert p_cv == pytest.approx(5.95, abs=0.1)

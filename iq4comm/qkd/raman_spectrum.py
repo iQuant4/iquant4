@@ -25,10 +25,14 @@ where
   for anti-Stokes (classical at lower frequency), with the Bose-Einstein
   occupation ``n_th(dnu, T) = 1 / (exp(h |dnu| / kT) - 1)``.
 
-The absolute scale is anchored so that a representative in-band C-band offset
-reproduces the calibrated scalar coefficient ``rho = 2.5e-8 /(km*nm)``.  Every
-other offset -- in particular the large O-band offset -- is then a *prediction*
-of the spectral profile, not a second free parameter.
+The absolute scale is anchored to an effective receiver-side coefficient from
+a digitisation of Configuration G in Ferreira da Silva *et al.* (JLT 2014).
+The fit gives ``rho = 4.708e-10 /(km*nm)`` for the co-propagating data when the
+experiment's measured end-to-end loss is represented by ``0.300 dB/km``.  This
+coefficient includes the experiment's filtering and collection efficiency; it
+is not a universal material constant.  Every other offset -- in particular the
+large O-band offset -- is therefore a first-order spectral extrapolation, not a
+second fitted parameter.
 
 For a multi-channel comb the total noise is the vector sum over channels,
 ``sum_i rho(nu_i - nu_q) * P_i`` -- the wavelength-resolved ``r^T P`` model.
@@ -61,7 +65,13 @@ _TAU2_S = 32.0e-15
 # da Silva et al. comb (classical channels spanning -1.2..+1.4 THz around the
 # 1546.12 nm quantum channel) and the calibrated scalar coefficient it maps to.
 ANCHOR_OFFSET_HZ = 0.8e12
-ANCHOR_RHO_PER_KM_PER_NM = 2.5e-8
+# Effective receiver-side coefficient from a least-squares reproduction of the
+# six co-propagating Configuration-G points in Fig. 4(a) of Ferreira da Silva
+# et al.  The locked digitisation and fit assumptions live in
+# validation/golden/raman_da_silva_2014.json.  The value carries the receiver
+# filtering/collection conventions of that experiment and should be calibrated
+# for a different receiver.
+ANCHOR_RHO_PER_KM_PER_NM = 4.708129334491568e-10
 ROOM_TEMPERATURE_K = 300.0
 
 

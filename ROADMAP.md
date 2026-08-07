@@ -9,8 +9,9 @@ public summary.
 ## Active in the developer alpha — iQuant4Comm (`iq4comm`)
 
 The alpha is a unified engine for **optical and quantum communications, and their
-coexistence on one fiber**. Built and validated (see `VALIDATION.md`, 21/21
-benchmark checks):
+coexistence on one fiber**. The implementation has 27 classified evidence checks
+plus a broader regression suite; see `VALIDATION.md` for what each class does and
+does not establish.
 
 **Physical layer (`iqcore`).** Split-step-Fourier NLSE propagation (attenuation,
 dispersion, Kerr); standard fibers (SMF-28/DSF/LEAF/DCF); EDFA amplifiers and
@@ -25,12 +26,12 @@ shaping; Reed-Solomon FEC with net-coding-gain; eye-diagram/Q-factor and
 constellation/EVM diagnostics; coherent carrier and timing recovery; and ML
 equalizers.
 
-**Quantum communications (`iq4comm.qkd`).** DV decoy-state BB84 and CV GG02 with
-finite-key security; MDI-QKD, Twin-Field QKD, trusted-node relay, and
-entanglement / quantum-repeater models; the PLOB bound; the spontaneous-Raman
-**coexistence engine** (calibrated to da Silva et al. JLT 2014); a coexistence
-optimizer and protocol selector; and a whole-system model mapping every design
-knob to both classical capacity and QKD key rate.
+**Quantum communications (`iq4comm.qkd`).** DV decoy-state BB84 and CV GG02
+research models; a generic finite-size sensitivity estimate; explicitly labelled
+MDI, Twin-Field, trusted-node, and repeater scaling proxies; the PLOB bound; the
+co/counter-propagating Raman **coexistence engine** with a 12-point literature
+reproduction; a guarded coexistence optimizer/protocol selector; and a
+whole-system model mapping design knobs to classical and quantum outputs.
 
 **Experience & validation.** An in-browser Coexistence Explorer, a reproducible
 validation suite, and a flagship 400G-metro-plus-QKD case study.
@@ -55,8 +56,9 @@ moved into `iqcore` rather than duplicated.
 
 ## What's next
 
-Near-term, on the communications branch: cross-checking the GN model and the
-coexistence key rates against a second independent simulation/experiment; a
-differentiable (autodiff) optimizer; and hardening the public API. The remaining
-physics gaps are noted in the component roadmap. Broad expansion into the other
-branches begins only after iQuant4Comm has a credible, documented user workflow.
+Near-term, on the communications branch: one serializable route/scenario model;
+uncertainty and validity warnings; independent hardware or partner data;
+cross-checking GN against a multi-channel SSFM dataset; report export; and public
+API hardening. Broad expansion into the other branches begins only after the
+coexistence-planning workflow is calibrated, documented, and independently
+tested.
